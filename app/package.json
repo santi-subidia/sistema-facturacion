@@ -2,6 +2,7 @@
   "name": "sistema-facturacion-electron",
   "version": "1.0.0",
   "description": "Sistema de Facturación — Aplicación de escritorio",
+  "author": "Tu Empresa",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -237,5 +237,6 @@ app.UseMiddleware<Backend.Middleware.JsonErrorMiddleware>();
 
 app.MapHealthChecks("/health");
 app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 app.Run();

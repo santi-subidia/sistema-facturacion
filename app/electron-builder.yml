@@ -4,7 +4,6 @@ productName: "Sistema de Facturación"
 copyright: "Copyright © 2025 Tu Empresa"
 
 # ─── Archivo principal de Electron ───────────────────────────────────────────
-main: main.js
 
 # ─── Directorios de entrada/salida ───────────────────────────────────────────
 directories:
