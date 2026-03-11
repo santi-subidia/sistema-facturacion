@@ -69,7 +69,6 @@ function ProductosTable({
                 />
               </th>
             )}
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Código</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nombre</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Proveedor</th>
@@ -96,9 +95,6 @@ function ProductosTable({
                   />
                 </td>
               )}
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                #{producto.id}
-              </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
                   {producto.codigo}

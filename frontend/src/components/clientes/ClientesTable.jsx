@@ -47,7 +47,6 @@ function ClientesTable({ clientes, loading, error, onEdit, onDelete, canDelete =
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cliente</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Documento</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Contacto</th>
@@ -58,9 +57,6 @@ function ClientesTable({ clientes, loading, error, onEdit, onDelete, canDelete =
         <tbody className="bg-white divide-y divide-slate-200">
           {clientes.map((cliente) => (
             <tr key={cliente.id} className="hover:bg-blue-50/50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                #{cliente.id}
-              </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">
