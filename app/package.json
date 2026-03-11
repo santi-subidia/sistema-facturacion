@@ -1,0 +1,18 @@
+{
+  "name": "sistema-facturacion-electron",
+  "version": "1.0.0",
+  "description": "Sistema de Facturación — Aplicación de escritorio",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "build:full": "npm run build:frontend && npm run build:backend && npm run dist",
+    "build:frontend": "cd ../frontend && npm run build",
+    "build:backend": "dotnet publish ../backend/Backend.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o resources/backend"
+  },
+  "devDependencies": {
+    "electron": "^26.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

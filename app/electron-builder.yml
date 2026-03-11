@@ -1,0 +1,69 @@
+# ─── Identidad de la app ──────────────────────────────────────────────────────
+appId: com.tu-empresa.sistema-facturacion
+productName: "Sistema de Facturación"
+copyright: "Copyright © 2025 Tu Empresa"
+
+# ─── Archivo principal de Electron ───────────────────────────────────────────
+main: main.js
+
+# ─── Directorios de entrada/salida ───────────────────────────────────────────
+directories:
+  output: dist          # El instalador final se escribe en app/dist/
+  buildResources: build # Recursos de build (iconos, etc.)
+
+# ─── Archivos del paquete Electron ────────────────────────────────────────────
+# Solo se incluyen los archivos de la app Electron (main.js, package.json).
+# El backend publicado y las assets se incluyen vía extraResources.
+files:
+  - main.js
+  - package.json
+
+# ─── Recursos extra (backend .NET publicado) ──────────────────────────────────
+# Estos se copian a <resources>/ en el paquete final.
+# El main.js los referencia con process.resourcesPath.
+extraResources:
+  - from: "resources/backend"
+    to: "backend"
+    filter:
+      - "**/*"
+      - "!**/*.pdb"     # Excluir símbolos de debug
+      - "!**/*.xml"     # Excluir docs XML de NuGet
+
+# ─── Compresión ───────────────────────────────────────────────────────────────
+compression: normal     # "maximum" es más lento; "normal" es buen balance
+
+# ─── Configuración Windows ────────────────────────────────────────────────────
+win:
+  target:
+    - target: nsis      # Instalador clásico (.exe) — más compatible
+      arch:
+        - x64
+  # Icono de la aplicación. Crear un archivo .ico y colocarlo en app/build/
+  # icon: build/icon.ico
+  
+  # No pedir elevación (la app no necesita Admin para funcionar)
+  requestedExecutionLevel: asInvoker
+
+# ─── Configuración del instalador NSIS ────────────────────────────────────────
+nsis:
+  oneClick: false                     # El usuario elige dónde instalar
+  allowToChangeInstallationDirectory: true
+  installerLanguages:
+    - es                              # Instalador en español
+  perMachine: false                   # Instalar por usuario (no requiere Admin)
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "Sistema de Facturación"
+
+  # Script personalizado para crear la configuración de producción en la instalación
+  # (appsettings.Production.json se crea vacío para que ASP.NET lo ignore)
+
+# ─── Publicar (auto-update) ───────────────────────────────────────────────────
+# Descomentar si se habilita electron-updater en el futuro:
+# publish:
+#   provider: github
+#   owner: tu-usuario
+#   repo: sistema-facturacion
+
+# ─── Metadatos ────────────────────────────────────────────────────────────────
+extends: null

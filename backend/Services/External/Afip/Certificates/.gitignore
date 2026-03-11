@@ -1,0 +1,9 @@
+# Ignorar todos los certificados por seguridad
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+
+# Permitir este archivo
+!.gitignore
