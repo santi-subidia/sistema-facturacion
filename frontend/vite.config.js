@@ -14,6 +14,10 @@ export default defineConfig({
   },
   build: {
     outDir: '../backend/wwwroot',
-    emptyOutDir: true
-  }
+    emptyOutDir: true,
+    rollupOptions: {
+      external: ['canvas'],
+    },
+  },
 })
+

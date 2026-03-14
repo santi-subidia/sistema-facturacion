@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config'
 import { fetchWithAuth } from '../../utils/authHeaders'
+import PdfViewer from '../shared/PdfViewer'
 
 function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClose }) {
   const comprobante = comprobanteProp || factura;
@@ -231,11 +232,7 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
                 </div>
               </div>
             ) : (
-              <iframe
-                src={pdfUrl}
-                className="w-full h-full border-none"
-                title="Vista Previa Factura"
-              />
+              <PdfViewer url={pdfUrl} title="Vista Previa Factura" />
             )}
           </div>
 

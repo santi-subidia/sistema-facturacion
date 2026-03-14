@@ -4,6 +4,7 @@ import { fetchWithAuth } from '../../utils/authHeaders'
 import { ESTADOS_PRESUPUESTO_COLORS, DEFAULT_ESTADO_COLOR } from '../../utils/constants'
 import { useConnectivity } from '../../hooks/useConnectivity'
 import ConvertirAComprobanteModal from './ConvertirAComprobanteModal'
+import PdfViewer from '../shared/PdfViewer'
 
 // Nombres de estados terminales que no pueden cambiar
 const NOMBRES_ESTADOS_TERMINALES = ['Venta en Negro', 'Facturado']
@@ -479,11 +480,7 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
 
               {/* Content (PDF Preview) */}
               <div className="flex-1 bg-slate-100 relative overflow-hidden">
-                <iframe
-                  src={pdfUrl}
-                  className="w-full h-full border-none"
-                  title="Vista Previa Presupuesto"
-                />
+                <PdfViewer url={pdfUrl} title="Vista Previa Presupuesto" />
               </div>
 
               {/* Footer */}
