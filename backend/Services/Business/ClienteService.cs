@@ -21,16 +21,11 @@ namespace Backend.Services.Business
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _db.Clientes
-                .Include(c => c.AfipCondicionIva)
-                .Include(c => c.Creado_por)
-                .Include(c => c.Eliminado_por)
-                .AsQueryable();
+            var query = _db.Clientes.AsQueryable();
 
-            // Filtrar eliminados solo si no se solicita incluirlos
-            if (!incluirEliminados)
+            if (incluirEliminados)
             {
-                query = query.Where(c => c.Eliminado_at == null);
+                query = query.IgnoreQueryFilters();
             }
 
             query = query.OrderBy(c => c.Apellido).ThenBy(c => c.Nombre);
@@ -78,9 +73,6 @@ namespace Backend.Services.Business
         public async Task<Cliente?> GetByIdAsync(int id)
         {
             var cliente = await _db.Clientes
-                .Include(c => c.AfipCondicionIva)
-                .Include(c => c.Creado_por)
-                .Include(c => c.Eliminado_por)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             return cliente;
@@ -148,10 +140,6 @@ namespace Backend.Services.Business
             try
             {
                 await _db.SaveChangesAsync();
-
-                // Recargar con navegaciones
-                await _db.Entry(cliente).Reference(c => c.AfipCondicionIva).LoadAsync();
-                await _db.Entry(cliente).Reference(c => c.Creado_por).LoadAsync();
 
                 return (true, "Cliente actualizado exitosamente.", cliente);
             }

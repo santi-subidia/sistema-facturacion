@@ -50,7 +50,7 @@ namespace Backend.Services.Business
                 Nombre = dto.Nombre,
                 Url_imagen = dto.Url_imagen,
                 IdRol = dto.IdRol,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash)
+                PasswordHash = dto.PasswordHash
             };
 
             _db.Usuarios.Add(usuario);
@@ -74,7 +74,7 @@ namespace Backend.Services.Business
             usuarioExistente.IdRol = dto.IdRol;
             if (!string.IsNullOrEmpty(passwordHash))
             {
-                usuarioExistente.PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordHash);
+                usuarioExistente.PasswordHash = passwordHash;
             }
             _db.Entry(usuarioExistente).State = EntityState.Modified;
             await _db.SaveChangesAsync();
