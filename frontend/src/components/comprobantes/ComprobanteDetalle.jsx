@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config'
 import { fetchWithAuth } from '../../utils/authHeaders'
 import PdfViewer from '../shared/PdfViewer'
+import EnviarCorreoModal from '../shared/EnviarCorreoModal'
+import EnviarWhatsAppModal from '../shared/EnviarWhatsAppModal'
 
 function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClose }) {
   const comprobante = comprobanteProp || factura;
@@ -10,6 +12,11 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [comprobanteCompleto, setComprobanteCompleto] = useState(null) // Para tener datos del cliente para compartir
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [loadingEmail, setLoadingEmail] = useState(false)
+  const [emailSuccess, setEmailSuccess] = useState(false)
+  const [sentEmailAddr, setSentEmailAddr] = useState('')
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
 
   useEffect(() => {
     if (show && comprobante) {
@@ -81,30 +88,15 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
   }
 
   const handleWhatsApp = () => {
-    const { tel } = getClientContact()
-    if (!tel) {
-      alert('Esta factura no tiene un número de teléfono asociado.')
-      return
-    }
-
-    // Limpiar numero (dejar solo digitos)
-    const cleanPhone = tel.replace(/\D/g, '')
-    const message = encodeURIComponent(`Hola, te envío adjunto la Factura #${comprobante?.id}. Saludos.`)
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
+    setShowWhatsAppModal(true)
   }
 
-  const handleEmail = async () => {
-    const { email } = getClientContact()
-    if (!email) {
-      alert('Esta factura no tiene un correo electrónico asociado al cliente para enviarla automáticamente.')
-      return
-    }
+  const handleEmail = () => {
+    setShowEmailModal(true)
+  }
 
-    if (!window.confirm(`¿Enviar la factura automáticamente a ${email}?`)) {
-      return;
-    }
-
-    setLoading(true) // Reutilizamos el estado de loading
+  const handleSendEmail = async (email) => {
+    setLoadingEmail(true)
     try {
       const id = comprobante.id || comprobante.Id
       const response = await fetchWithAuth(`${API_BASE_URL}/comprobantes/${id}/enviar-correo`, {
@@ -118,7 +110,8 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
       const data = await response.json()
 
       if (response.ok) {
-        alert('Correo enviado exitosamente!')
+        setSentEmailAddr(email)
+        setEmailSuccess(true)
       } else {
         alert(`Error al enviar el correo: ${data.message || 'Error desconocido'}`)
       }
@@ -126,7 +119,7 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
       console.error('Error sending email:', err)
       alert('Error de red al intentar enviar el correo. Por favor, revisa la consola.')
     } finally {
-      setLoading(false)
+      setLoadingEmail(false)
     }
   }
 
@@ -186,7 +179,7 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 flex justify-between items-center shrink-0">
             <div className="flex items-center space-x-3">
               <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
@@ -283,6 +276,27 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
           </div>
         </div>
       </div>
+
+      {/* Modal de envío por correo */}
+      <EnviarCorreoModal
+        show={showEmailModal}
+        onClose={() => { setShowEmailModal(false); setEmailSuccess(false); setSentEmailAddr('') }}
+        onSend={handleSendEmail}
+        clienteEmail={getClientContact().email}
+        loading={loadingEmail}
+        tipoDocumento="factura"
+        success={emailSuccess}
+        sentEmail={sentEmailAddr}
+      />
+
+      {/* Modal de envío por WhatsApp */}
+      <EnviarWhatsAppModal
+        show={showWhatsAppModal}
+        onClose={() => setShowWhatsAppModal(false)}
+        clienteTelefono={getClientContact().tel}
+        tipoDocumento="factura"
+        documentoId={comprobante?.id}
+      />
     </div>
   )
 }

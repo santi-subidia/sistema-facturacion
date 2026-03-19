@@ -5,6 +5,8 @@ import { ESTADOS_PRESUPUESTO_COLORS, DEFAULT_ESTADO_COLOR } from '../../utils/co
 import { useConnectivity } from '../../hooks/useConnectivity'
 import ConvertirAComprobanteModal from './ConvertirAComprobanteModal'
 import PdfViewer from '../shared/PdfViewer'
+import EnviarCorreoModal from '../shared/EnviarCorreoModal'
+import EnviarWhatsAppModal from '../shared/EnviarWhatsAppModal'
 
 // Nombres de estados terminales que no pueden cambiar
 const NOMBRES_ESTADOS_TERMINALES = ['Venta en Negro', 'Facturado']
@@ -18,6 +20,10 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
   const [showPdfPreview, setShowPdfPreview] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
   const [showConvertirModal, setShowConvertirModal] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailSuccess, setEmailSuccess] = useState(false)
+  const [sentEmailAddr, setSentEmailAddr] = useState('')
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [presupuestoCompleto, setPresupuestoCompleto] = useState(null)
   const [estadoLocal, setEstadoLocal] = useState(null)
   const { isAfipOnline } = useConnectivity()
@@ -119,28 +125,14 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
   }
 
   const handleWhatsApp = () => {
-    const { tel } = getClientContact()
-    if (!tel) {
-      alert('Este presupuesto no tiene un número de teléfono asociado al cliente.')
-      return
-    }
-
-    const cleanPhone = tel.replace(/\D/g, '')
-    const message = encodeURIComponent(`Hola, te envío adjunto el Presupuesto #${presupuesto?.id}. Saludos.`)
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
+    setShowWhatsAppModal(true)
   }
 
-  const handleEmail = async () => {
-    const { email } = getClientContact()
-    if (!email) {
-      alert('Este presupuesto no tiene un correo electrónico asociado al cliente para enviarlo automáticamente.')
-      return
-    }
+  const handleEmail = () => {
+    setShowEmailModal(true)
+  }
 
-    if (!window.confirm(`¿Enviar el presupuesto automáticamente a ${email}?`)) {
-      return
-    }
-
+  const handleSendEmail = async (email) => {
     setLoadingEmail(true)
     try {
       const id = presupuesto.id
@@ -155,7 +147,8 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
       const data = await response.json()
 
       if (response.ok) {
-        alert('Correo enviado exitosamente!')
+        setSentEmailAddr(email)
+        setEmailSuccess(true)
       } else {
         alert(`Error al enviar el correo: ${data.message || 'Error desconocido'}`)
       }
@@ -445,6 +438,27 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
               }}
             />
           )}
+
+          {/* Modal de envío por correo */}
+          <EnviarCorreoModal
+            show={showEmailModal}
+            onClose={() => { setShowEmailModal(false); setEmailSuccess(false); setSentEmailAddr('') }}
+            onSend={handleSendEmail}
+            clienteEmail={getClientContact().email}
+            loading={loadingEmail}
+            tipoDocumento="presupuesto"
+            success={emailSuccess}
+            sentEmail={sentEmailAddr}
+          />
+
+          {/* Modal de envío por WhatsApp */}
+          <EnviarWhatsAppModal
+            show={showWhatsAppModal}
+            onClose={() => setShowWhatsAppModal(false)}
+            clienteTelefono={getClientContact().tel}
+            tipoDocumento="presupuesto"
+            documentoId={presupuesto?.id}
+          />
         </div>
       </div>
 
