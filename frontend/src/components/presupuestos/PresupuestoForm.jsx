@@ -122,12 +122,6 @@ function PresupuestoForm({
         clienteDireccion: "",
       });
       setClienteSeleccionado(null);
-    } else if (tipo === "consumidor_con_datos") {
-      setFormData({
-        ...formData,
-        idCliente: "",
-      });
-      setClienteSeleccionado(null);
     } else if (tipo === "cliente_habitual") {
       setFormData({
         ...formData,
@@ -353,27 +347,27 @@ function PresupuestoForm({
       fecha: formData.fecha ? new Date(formData.fecha).toISOString() : new Date().toISOString(),
       fechaVencimiento: formData.fechaVencimiento ? new Date(formData.fechaVencimiento).toISOString() : null,
       clienteDocumento:
-        tipoCliente === "consumidor_con_datos"
+        tipoCliente === "consumidor_final"
           ? formData.clienteDocumento || null
           : null,
       clienteNombre:
-        tipoCliente === "consumidor_con_datos"
+        tipoCliente === "consumidor_final"
           ? formData.clienteNombre || null
           : null,
       clienteApellido:
-        tipoCliente === "consumidor_con_datos"
+        tipoCliente === "consumidor_final"
           ? formData.clienteApellido || null
           : null,
       clienteTelefono:
-        tipoCliente === "consumidor_con_datos"
+        tipoCliente === "consumidor_final"
           ? formData.clienteTelefono || null
           : null,
       clienteCorreo:
-        tipoCliente === "consumidor_con_datos"
+        tipoCliente === "consumidor_final"
           ? formData.clienteCorreo || null
           : null,
       clienteDireccion:
-        tipoCliente === "consumidor_con_datos"
+        tipoCliente === "consumidor_final"
           ? formData.clienteDireccion || null
           : null,
       detalles: formData.detalles.map((d) => ({
@@ -456,21 +450,6 @@ function PresupuestoForm({
               <input
                 type="radio"
                 name="tipoCliente"
-                value="consumidor_con_datos"
-                checked={tipoCliente === "consumidor_con_datos"}
-                onChange={(e) => handleTipoClienteChange(e.target.value)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                disabled={submitting}
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Consumidor Final con Datos
-              </span>
-            </label>
-
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="tipoCliente"
                 value="cliente_habitual"
                 checked={tipoCliente === "cliente_habitual"}
                 onChange={(e) => handleTipoClienteChange(e.target.value)}
@@ -528,7 +507,7 @@ function PresupuestoForm({
             </>
           )}
 
-          {tipoCliente === "consumidor_con_datos" && (
+          {tipoCliente === "consumidor_final" && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
