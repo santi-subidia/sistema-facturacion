@@ -122,7 +122,7 @@ namespace Backend.Controllers
                   return NotFound(new { success = false, message = "Comprobante no encontrado o PDF vacío al intentar enviar correo" });
 
              // 2. Enviar Correo
-             var (successMail, messageMail) = await _emailService.EnviarPdfAsync(request.Email, fileBytes, fileName ?? "Comprobante.pdf", id);
+             var (successMail, messageMail) = await _emailService.EnviarDocumentoPdfAsync(request.Email, fileBytes, fileName ?? "Comprobante.pdf", "Comprobante", id);
 
              if (!successMail)
                  return StatusCode(500, new { success = false, message = messageMail });

@@ -139,7 +139,7 @@ namespace Backend.Controllers
             var fileName = $"Presupuesto_{presupuesto.NumeroPresupuesto:D6}.pdf";
 
             // 3. Enviar Correo
-            var (successMail, messageMail) = await _emailService.EnviarPresupuestoPdfAsync(request.Email, pdfBytes, fileName, id);
+            var (successMail, messageMail) = await _emailService.EnviarDocumentoPdfAsync(request.Email, pdfBytes, fileName, "Presupuesto", id);
 
             if (!successMail)
                 return StatusCode(500, new { success = false, message = messageMail });

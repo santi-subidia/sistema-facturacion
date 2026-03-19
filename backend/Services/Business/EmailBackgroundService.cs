@@ -74,10 +74,11 @@ namespace Backend.Services.Business
                     if (emailItem.IdComprobante.HasValue)
                     {
                         var pdfBytes = await comprobantePdfService.GenerarPdfComprobanteAsync(emailItem.IdComprobante.Value);
-                        var result = await emailService.EnviarPdfAsync(
+                        var result = await emailService.EnviarDocumentoPdfAsync(
                             emailItem.Destinatario, 
                             pdfBytes, 
                             $"Comprobante_{emailItem.IdComprobante.Value}.pdf", 
+                            "Comprobante",
                             emailItem.IdComprobante.Value, 
                             isRetry: true);
                             
@@ -87,10 +88,11 @@ namespace Backend.Services.Business
                     else if (emailItem.IdPresupuesto.HasValue)
                     {
                         var pdfBytes = await presupuestoPdfService.GenerarPdfPresupuestoAsync(emailItem.IdPresupuesto.Value);
-                        var result = await emailService.EnviarPresupuestoPdfAsync(
+                        var result = await emailService.EnviarDocumentoPdfAsync(
                             emailItem.Destinatario, 
                             pdfBytes, 
                             $"Presupuesto_{emailItem.IdPresupuesto.Value}.pdf", 
+                            "Presupuesto",
                             emailItem.IdPresupuesto.Value, 
                             isRetry: true);
                             

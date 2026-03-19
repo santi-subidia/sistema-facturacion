@@ -28,52 +28,35 @@ namespace Backend.Services.Business
             _logger = logger;
         }
 
-        public async Task<(bool success, string message)> EnviarPdfAsync(string destinationEmail, byte[] pdfBytes, string fileName, int idComprobante, bool isRetry = false)
+        public async Task<(bool success, string message)> EnviarDocumentoPdfAsync(string destinationEmail, byte[] pdfBytes, string fileName, string tipoDocumento, int idDocumento, bool isRetry = false)
         {
             var result = await EnviarCorreoBaseAsync(
                 destinationEmail, pdfBytes, fileName,
-                $"Comprobante #{idComprobante}",
-                $"Hola,\n\nAdjunto le enviamos el comprobante #{idComprobante}.\n\nSaludos cordialmente,"
+                tipoDocumento,
+                "Estimado/a cliente,\n\n"
+                + $"Adjunto encontrará el {tipoDocumento.ToLower()} correspondiente.\n\n"
+                + "Ante cualquier consulta, no dude en comunicarse con nosotros.\n\n"
+                + "Saludos cordiales,"
             );
 
             if (!result.success && !isRetry)
             {
-                _db.EmailQueues.Add(new EmailQueue
+                var queue = new EmailQueue
                 {
                     Destinatario = destinationEmail,
-                    IdComprobante = idComprobante,
                     Intentos = 0,
                     ErrorUltimoIntento = result.message,
                     ProximoReintento = DateTime.UtcNow.AddMinutes(1)
-                });
+                };
+
+                if (tipoDocumento == "Comprobante")
+                    queue.IdComprobante = idDocumento;
+                else
+                    queue.IdPresupuesto = idDocumento;
+
+                _db.EmailQueues.Add(queue);
                 await _db.SaveChangesAsync();
-                
-                return (true, "Sin conexión al servidor de correo. El mensaje se ha encolado y se enviará automáticamente al restablecer la conexión.");
-            }
 
-            return result;
-        }
-
-        public async Task<(bool success, string message)> EnviarPresupuestoPdfAsync(string destinationEmail, byte[] pdfBytes, string fileName, int idPresupuesto, bool isRetry = false)
-        {
-            var result = await EnviarCorreoBaseAsync(
-                destinationEmail, pdfBytes, fileName,
-                $"Presupuesto #{idPresupuesto}",
-                $"Hola,\n\nAdjunto le enviamos el presupuesto #{idPresupuesto}.\n\nSaludos cordialmente,"
-            );
-
-            if (!result.success && !isRetry)
-            {
-                _db.EmailQueues.Add(new EmailQueue
-                {
-                    Destinatario = destinationEmail,
-                    IdPresupuesto = idPresupuesto,
-                    Intentos = 0,
-                    ErrorUltimoIntento = result.message,
-                    ProximoReintento = DateTime.UtcNow.AddMinutes(1)
-                });
-                await _db.SaveChangesAsync();
-                
                 return (true, "Sin conexión al servidor de correo. El mensaje se ha encolado y se enviará automáticamente al restablecer la conexión.");
             }
 

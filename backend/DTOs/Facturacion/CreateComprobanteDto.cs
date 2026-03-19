@@ -2,7 +2,7 @@ namespace Backend.DTOs.Facturacion
 {
     public class CreateComprobanteDto
     {
-        // â”€â”€ Cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Cliente
 
         public int? IdCliente { get; set; }
 
@@ -13,7 +13,7 @@ namespace Backend.DTOs.Facturacion
         public string? ClienteCorreo    { get; set; }
         public string? ClienteDireccion { get; set; }
 
-        // â”€â”€ Comprobante â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Comprobante
 
         public int IdTipoComprobante { get; set; }
         public int IdFormaPago      { get; set; }
@@ -22,7 +22,7 @@ namespace Backend.DTOs.Facturacion
         public DateTime Fecha { get; set; } = DateTime.UtcNow;
         public decimal? PorcentajeAjuste { get; set; }
 
-        // â”€â”€ AFIP: Concepto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // AFIP: Concepto
 
         public int CodigoConcepto { get; set; } = 1;
 
@@ -30,16 +30,16 @@ namespace Backend.DTOs.Facturacion
         public DateTime? FechaServicioHasta    { get; set; }
         public DateTime? FechaVencimientoPago  { get; set; }
 
-        // â”€â”€ AFIP: Moneda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // AFIP: Moneda
         
         public string  CodigoMoneda    { get; set; } = "PES";
         public decimal CotizacionMoneda { get; set; } = 1m;
 
-        // â”€â”€ Nota de crÃ©dito â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Nota de crédito
 
         public List<ComprobanteAsociadoDto>? ComprobantesAsociados { get; set; }
 
-        // â”€â”€ Detalles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Detalles
 
         public List<DetalleComprobanteDto> Detalles { get; set; } = new();
     }
