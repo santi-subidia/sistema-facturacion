@@ -55,12 +55,6 @@ namespace Backend.Data
                     logger.LogInformation("   - Condiciones de venta cargadas");
                 }
 
-                if (!await db.Productos.AnyAsync())
-                {
-                    await ProductoSeeder.SeedAsync(db);
-                    logger.LogInformation("   - Productos cargados");
-                }
-
                 if (!await db.Clientes.AnyAsync())
                 {
                     await ClienteSeeder.SeedAsync(db);
