@@ -72,6 +72,18 @@ namespace Backend.Services.External.Afip.Services
             // Usar AppContext.BaseDirectory para garantizar portabilidad en binario publicado.
             // ContentRootPath apunta al directorio del proyecto .NET, que no existe en producción.
             string certPath = Path.Combine(AppContext.BaseDirectory, "Services", "External", "Afip", "Certificates", config.CertificadoNombre);
+            
+            // Fallback para desarrollo: si se guardó desde el frontend en modo dev, 
+            // AfipConfiguracionService lo aloja en ContentRootPath.
+            if (!File.Exists(certPath))
+            {
+                string fallbackPath = Path.Combine(_environment.ContentRootPath, "Services", "External", "Afip", "Certificates", config.CertificadoNombre);
+                if (File.Exists(fallbackPath))
+                {
+                    certPath = fallbackPath;
+                }
+            }
+
             string certPassword = !string.IsNullOrEmpty(config.CertificadoPassword) ? _encryptionService.Decrypt(config.CertificadoPassword) : "";
             
             string wsaaUrl = config.EsProduccion 
