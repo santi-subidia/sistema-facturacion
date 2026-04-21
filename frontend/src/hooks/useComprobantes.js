@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { API_BASE_URL } from '../config'
-import { fetchWithAuth } from '../utils/authHeaders'
+import { fetchWithAuth, getAuthHeaders } from '../utils/authHeaders'
 
 export function useComprobantes() {
   const [clientes, setClientes] = useState([])
@@ -11,6 +11,10 @@ export function useComprobantes() {
   const [afipConfig, setAfipConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Clave de idempotencia: se genera una por "sesión de formulario".
+  // Se regenera automáticamente tras cada creación exitosa.
+  const idempotencyKeyRef = useRef(crypto.randomUUID())
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -67,10 +71,19 @@ export function useComprobantes() {
     }
   }
 
+  // Regenerar manualmente la clave (útil al resetear el formulario sin desmontar)
+  const resetIdempotencyKey = () => {
+    idempotencyKeyRef.current = crypto.randomUUID()
+  }
+
   const createComprobante = async (comprobanteData) => {
     try {
       const response = await fetchWithAuth(`${API_BASE_URL}/comprobantes/crear-con-detalles`, {
         method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'X-Idempotency-Key': idempotencyKeyRef.current
+        },
         body: JSON.stringify(comprobanteData)
       })
 
@@ -80,6 +93,11 @@ export function useComprobantes() {
           errorData = await response.json()
         } catch {
           throw new Error('Error al conectar con el servidor')
+        }
+
+        // Si el backend devolvió 409 (conflicto de idempotencia en proceso), informar al usuario
+        if (response.status === 409) {
+          throw new Error(errorData.message || 'La operación ya está siendo procesada. Por favor, espere.')
         }
 
         let errorMessage = errorData.message || 'Error al crear el comprobante';
@@ -97,6 +115,10 @@ export function useComprobantes() {
       }
 
       const data = await response.json()
+
+      // Creación exitosa: regenerar la clave para la próxima operación
+      resetIdempotencyKey()
+
       return data
     } catch (err) {
       console.error('Error al crear comprobante:', err)
@@ -114,6 +136,7 @@ export function useComprobantes() {
     loading,
     error,
     createComprobante,
+    resetIdempotencyKey,
     refreshData: fetchInitialData
   }
 }

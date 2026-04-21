@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Backend.Models;
 using Backend.DTOs.Facturacion;
+using Backend.Filters;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
@@ -131,6 +132,8 @@ namespace Backend.Controllers
         }
 
         [HttpPost]
+        [Idempotent]
+        [ServiceFilter(typeof(IdempotencyFilter))]
         public async Task<IActionResult> Create(Comprobante comprobante)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -150,6 +153,8 @@ namespace Backend.Controllers
         }
 
         [HttpPost("crear-con-detalles")]
+        [Idempotent]
+        [ServiceFilter(typeof(IdempotencyFilter))]
         public async Task<IActionResult> CreateConDetalles([FromBody] CreateComprobanteDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

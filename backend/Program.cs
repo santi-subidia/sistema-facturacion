@@ -87,6 +87,10 @@ builder.Services.AddHealthChecks()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Caché en memoria para idempotencia y datos estáticos
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IdempotencyFilter>();
+
 builder.Services.AddControllers(options => 
     {
         options.Filters.Add<AfipConfiguracionFilter>();
