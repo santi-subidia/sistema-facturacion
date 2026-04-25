@@ -58,7 +58,7 @@ public class ComprobantesService : IComprobantesService
                 return (false, errorDetalles.Message, null, errorDetalles.Errors);
 
             // 4. Resolver datos de documento del cliente para AFIP
-            var (tipoDoc, numDoc, condIva) = ResolverDatosDocumentoCliente(entidades.Cliente);
+            var (tipoDoc, numDoc, condIva) = ResolverDatosDocumentoCliente(entidades.Cliente, comprobante.ClienteDocumento);
 
             // 5. Validar comprobantes asociados (notas de crÃ©dito)
             var (cbtesAsoc, errorAsociados) = await ValidarComprobantesAsociadosAsync(comprobante, dto);
@@ -229,30 +229,58 @@ public class ComprobantesService : IComprobantesService
     }
 
     /// <summary>
-    /// Resuelve tipo de documento, nÃºmero de documento y condiciÃ³n IVA del cliente para AFIP.
+    /// Resuelve tipo de documento, número de documento y condición IVA del cliente para AFIP.
     /// </summary>
-    private (int tipoDocumento, long numeroDocumento, int condicionIva) ResolverDatosDocumentoCliente(Cliente? cliente)
+    private (int tipoDocumento, long numeroDocumento, int condicionIva) ResolverDatosDocumentoCliente(Cliente? cliente, string? documentoManual = null)
     {
         int tipoDocumento = AfipConstants.TipoDocumentoConsumidorFinal;
         long numeroDocumento = 0;
         int condicionIva = AfipConstants.CondicionIvaConsumidorFinal;
 
+        string? docRaw = null;
+
         if (cliente != null)
         {
             tipoDocumento = cliente.IdAfipTipoDocumento;
-
-            var doc = cliente.Documento.Replace("-", "");
-            if (!long.TryParse(doc, out numeroDocumento))
-                numeroDocumento = 0;
-
+            docRaw = cliente.Documento;
             condicionIva = cliente.IdAfipCondicionIva;
+        }
+        else if (!string.IsNullOrWhiteSpace(documentoManual))
+        {
+            docRaw = documentoManual;
+        }
+
+        if (!string.IsNullOrWhiteSpace(docRaw))
+        {
+            var docClean = docRaw.Replace("-", "").Trim();
+            if (long.TryParse(docClean, out long parsedDoc))
+            {
+                numeroDocumento = parsedDoc;
+            }
+        }
+
+        // Validación AFIP: Si el tipo es 99 (Consumidor Final) pero hay un número de documento,
+        // AFIP exige que DocNro sea 0. Si queremos enviar el número, debemos cambiar el tipo.
+        if (tipoDocumento == AfipConstants.TipoDocumentoConsumidorFinal && numeroDocumento > 0)
+        {
+            // Heurística simple: 11 dígitos suele ser CUIT/CUIL, de lo contrario asumimos DNI
+            string docCleaned = docRaw?.Replace("-", "").Trim() ?? "";
+            tipoDocumento = (docCleaned.Length == 11) 
+                ? AfipConstants.TipoDocumentoCuit 
+                : AfipConstants.TipoDocumentoDni;
+        }
+
+        // Garantía final para AFIP: si sigue siendo 99, el número DEBE ser 0.
+        if (tipoDocumento == AfipConstants.TipoDocumentoConsumidorFinal)
+        {
+            numeroDocumento = 0;
         }
 
         return (tipoDocumento, numeroDocumento, condicionIva);
     }
 
     /// <summary>
-    /// Valida comprobantes asociados (para notas de crÃ©dito): verifica existencia y CAE.
+    /// Valida comprobantes asociados (para notas de credito): verifica existencia y CAE.
     /// </summary>
     private async Task<(List<CbteAsoc>? cbtesAsoc, ComprobanteError? error)> ValidarComprobantesAsociadosAsync(
         Comprobante comprobante, CreateComprobanteDto dto)
