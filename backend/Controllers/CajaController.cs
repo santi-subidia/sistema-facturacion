@@ -12,10 +12,12 @@ namespace Backend.Controllers
     public class CajaController : ControllerBase
     {
         private readonly ICajaService _cajaService;
+        private readonly ICacheService _cacheService;
 
-        public CajaController(ICajaService cajaService)
+        public CajaController(ICajaService cajaService, ICacheService cacheService)
         {
             _cajaService = cajaService;
+            _cacheService = cacheService;
         }
 
         private int GetUserId()
@@ -113,6 +115,9 @@ namespace Backend.Controllers
             {
                 var userId = GetUserId();
                 var sesion = await _cajaService.AbrirCajaAsync(userId, dto);
+                
+                _cacheService.RemoveByPrefix("Dashboard:");
+                
                 return Ok(sesion);
             }
             catch (Exception ex)
@@ -128,6 +133,9 @@ namespace Backend.Controllers
             {
                 var userId = GetUserId();
                 var sesion = await _cajaService.CerrarCajaAsync(userId, dto);
+                
+                _cacheService.RemoveByPrefix("Dashboard:");
+                
                 return Ok(sesion);
             }
             catch (Exception ex)
@@ -143,6 +151,9 @@ namespace Backend.Controllers
             {
                 var userId = GetUserId();
                 var movimiento = await _cajaService.AgregarMovimientoAsync(userId, dto);
+                
+                _cacheService.RemoveByPrefix("Dashboard:");
+                
                 return Ok(movimiento);
             }
             catch (Exception ex)

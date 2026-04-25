@@ -11,10 +11,12 @@ namespace Backend.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
+        private readonly ICacheService _cacheService;
 
-        public DashboardController(IDashboardService dashboardService)
+        public DashboardController(IDashboardService dashboardService, ICacheService cacheService)
         {
             _dashboardService = dashboardService;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -22,7 +24,11 @@ namespace Backend.Controllers
         {
             try
             {
-                var resumen = await _dashboardService.ObtenerResumenAsync();
+                var resumen = await _cacheService.GetOrCreateAsync(
+                    "Dashboard:Resumen",
+                    async () => await _dashboardService.ObtenerResumenAsync(),
+                    TimeSpan.FromMinutes(2));
+
                 return Ok(resumen);
             }
             catch (Exception ex)

@@ -23,6 +23,7 @@ namespace Backend.Controllers
         private readonly IAfipParametrosService _afipParametrosService;
         private readonly IAfipComprobantesHabilitadosService _comprobantesHabilitadosService;
         private readonly ILogger<AfipConfiguracionController> _logger;
+        private readonly ICacheService _cacheService;
 
         public AfipConfiguracionController(
             AppDbContext db,
@@ -30,7 +31,8 @@ namespace Backend.Controllers
             IAfipWsfeService afipWsfeService,
             IAfipParametrosService afipParametrosService,
             IAfipComprobantesHabilitadosService comprobantesHabilitadosService,
-            ILogger<AfipConfiguracionController> logger)
+            ILogger<AfipConfiguracionController> logger,
+            ICacheService cacheService)
         {
             _db = db;
             _service = service;
@@ -38,49 +40,58 @@ namespace Backend.Controllers
             _afipParametrosService = afipParametrosService;
             _comprobantesHabilitadosService = comprobantesHabilitadosService;
             _logger = logger;
+            _cacheService = cacheService;
         }
 
         [HttpGet("~/api/afip/config/check")]
         public async Task<IActionResult> CheckConfig([FromServices] IConfiguration configuration, [FromServices] IWebHostEnvironment environment)
         {
-            var configActiva = await _service.GetActivaAsync();
-            
-            bool certExists = false;
-            bool hasPassword = false;
-            bool isProduction = false;
-            string environmentName = "Desconocido";
-            string cuit = "No configurado";
-            string? razonSocial = null;
-            
-            if (configActiva != null)
-            {
-                // Configuración desde DB
-                if (!string.IsNullOrEmpty(configActiva.CertificadoNombre))
+            var response = await _cacheService.GetOrCreateAsync(
+                "Afip:ConfigCheck",
+                async () =>
                 {
-                    string certPath = System.IO.Path.Combine(environment.ContentRootPath, "Services", "External", "Afip", "Certificates", configActiva.CertificadoNombre);
-                    certExists = System.IO.File.Exists(certPath);
-                }
-                
-                hasPassword = configActiva.HasPassword;
-                isProduction = configActiva.EsProduccion;
-                environmentName = isProduction ? "Producción" : "Homologación";
-                cuit = configActiva.Cuit;
-                razonSocial = configActiva.RazonSocial;
-            }
+                    var configActiva = await _service.GetActivaAsync();
+                    
+                    bool certExists = false;
+                    bool hasPassword = false;
+                    bool isProduction = false;
+                    string environmentName = "Desconocido";
+                    string cuit = "No configurado";
+                    string? razonSocial = null;
+                    
+                    if (configActiva != null)
+                    {
+                        // Configuración desde DB
+                        if (!string.IsNullOrEmpty(configActiva.CertificadoNombre))
+                        {
+                            string certPath = System.IO.Path.Combine(environment.ContentRootPath, "Services", "External", "Afip", "Certificates", configActiva.CertificadoNombre);
+                            certExists = System.IO.File.Exists(certPath);
+                        }
+                        
+                        hasPassword = configActiva.HasPassword;
+                        isProduction = configActiva.EsProduccion;
+                        environmentName = isProduction ? "Producción" : "Homologación";
+                        cuit = configActiva.Cuit;
+                        razonSocial = configActiva.RazonSocial;
+                    }
 
-            return Ok(new
-            {
-                success = true,
-                data = new
-                {
-                    certificateExists = certExists,
-                    hasPassword = hasPassword,
-                    environment = environmentName,
-                    cuit = cuit,
-                    configActiva = configActiva != null,
-                    razonSocial = razonSocial
-                }
-            });
+                    return new
+                    {
+                        success = true,
+                        data = new
+                        {
+                            certificateExists = certExists,
+                            hasPassword = hasPassword,
+                            environment = environmentName,
+                            cuit = cuit,
+                            configActiva = configActiva != null,
+                            razonSocial = razonSocial
+                        }
+                    };
+                },
+                TimeSpan.FromMinutes(15));
+                
+            return Ok(response);
         }
 
         [HttpPost("~/api/afip/parametros/sincronizar")]
@@ -117,6 +128,9 @@ namespace Backend.Controllers
                 {
                     comprobantesMsg = $" Advertencia: no se pudieron actualizar los comprobantes habilitados: {ex.Message}";
                 }
+
+                _cacheService.RemoveByPrefix("Afip:");
+                _cacheService.RemoveByPrefix("Catalogo:");
 
                 return Ok(new
                 {
@@ -218,7 +232,10 @@ namespace Backend.Controllers
         [HttpGet("activa")]
         public async Task<IActionResult> GetConfiguracionActiva()
         {
-            var config = await _service.GetActivaAsync();
+            var config = await _cacheService.GetOrCreateAsync(
+                "Afip:ConfiguracionActiva",
+                async () => await _service.GetActivaAsync(),
+                TimeSpan.FromMinutes(15));
 
             if (config == null)
                 return NotFound(new { success = false, message = "No hay configuración AFIP activa" });
@@ -247,7 +264,10 @@ namespace Backend.Controllers
         [HttpGet("condiciones-iva")]
         public async Task<IActionResult> GetCondicionesIva()
         {
-            var condiciones = await _service.GetCondicionesIvaAsync();
+            var condiciones = await _cacheService.GetOrCreateAsync(
+                "Afip:CondicionesIva",
+                async () => await _service.GetCondicionesIvaAsync(),
+                TimeSpan.FromMinutes(30));
             return Ok(new { success = true, data = condiciones });
         }
 
@@ -286,6 +306,8 @@ namespace Backend.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Desconocido";
             _logger.LogInformation("Auditoría: El usuario {UserId} CREÓ la configuración AFIP {Cuit} ({RazonSocial})", userId, dto.Cuit, dto.RazonSocial);
 
+            _cacheService.RemoveByPrefix("Afip:");
+
             return CreatedAtAction(nameof(GetById), new { id = created!.Id },
                 new { success = true, message = $"{message}. {syncMessage}", data = created });
         }
@@ -307,13 +329,18 @@ namespace Backend.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Desconocido";
             _logger.LogInformation("Auditoría: El usuario {UserId} ACTUALIZÓ la configuración AFIP {Id} (CUIT: {Cuit})", userId, id, dto.Cuit);
 
+            _cacheService.RemoveByPrefix("Afip:");
+
             return Ok(new { success = true, message = message, data = updated });
         }
 
         [HttpGet("{idConfiguracion}/tipos-comprobante")]
         public async Task<IActionResult> GetTiposComprobanteHabilitados(int idConfiguracion)
         {
-            var tipos = await _service.GetTiposComprobanteHabilitadosAsync(idConfiguracion);
+            var tipos = await _cacheService.GetOrCreateAsync(
+                $"Afip:TiposComprobanteHabilitados:{idConfiguracion}",
+                async () => await _service.GetTiposComprobanteHabilitadosAsync(idConfiguracion),
+                TimeSpan.FromMinutes(10));
             return Ok(new { success = true, data = tipos });
         }
 
@@ -331,6 +358,9 @@ namespace Backend.Controllers
                 return BadRequest(new { success = false, message = message });
             }
 
+            _cacheService.Remove($"Afip:TiposComprobanteHabilitados:{idConfiguracion}");
+            _cacheService.RemoveByPrefix("Catalogo:TipoComprobante");
+
             return Ok(new { success = true, message = "Tipo de comprobante actualizado correctamente" });
         }
 
@@ -345,13 +375,19 @@ namespace Backend.Controllers
                return NotFound(new { success = false, message = message });
            }
 
+            _cacheService.Remove($"Afip:TiposComprobanteHabilitados:{idConfiguracion}");
+            _cacheService.RemoveByPrefix("Catalogo:TipoComprobante");
+
             return Ok(new { success = true, message = "Tipo de comprobante deshabilitado correctamente" });
         }
 
         [HttpGet("~/api/afip/puntos-venta")]
         public async Task<IActionResult> GetPuntosVenta()
         {
-            var puntosVenta = await _db.AfipPuntosVenta.ToListAsync();
+            var puntosVenta = await _cacheService.GetOrCreateAsync(
+                "Afip:PuntosVenta",
+                async () => await _db.AfipPuntosVenta.ToListAsync(),
+                TimeSpan.FromMinutes(30));
             return Ok(new { success = true, data = puntosVenta });
         }
     }

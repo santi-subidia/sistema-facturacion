@@ -14,11 +14,13 @@ namespace Backend.Controllers
     {
         private readonly IComprobantesService _comprobantesService;
         private readonly Backend.Services.Interfaces.IEmailService _emailService;
+        private readonly Backend.Services.Interfaces.ICacheService _cacheService;
 
-        public ComprobantesController(IComprobantesService comprobantesService, Backend.Services.Interfaces.IEmailService emailService)
+        public ComprobantesController(IComprobantesService comprobantesService, Backend.Services.Interfaces.IEmailService emailService, Backend.Services.Interfaces.ICacheService cacheService)
         {
             _comprobantesService = comprobantesService;
             _emailService = emailService;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -149,6 +151,8 @@ namespace Backend.Controllers
                  return BadRequest(new { Errors = errors ?? new[] { message } });
             }
 
+            _cacheService.RemoveByPrefix("Dashboard:");
+
             return CreatedAtAction(nameof(GetById), new { id = createdComprobante!.Id }, createdComprobante);
         }
 
@@ -173,6 +177,8 @@ namespace Backend.Controllers
                 return BadRequest(new { success = false, message = message });
             }
 
+            _cacheService.RemoveByPrefix("Dashboard:");
+
             return CreatedAtAction(nameof(GetById), new { id = comprobante!.Id }, new
             {
                 success = true,
@@ -194,6 +200,8 @@ namespace Backend.Controllers
                  return BadRequest(new { Errors = new[] { message } });
              }
 
+             _cacheService.RemoveByPrefix("Dashboard:");
+
              return NoContent();
         }
 
@@ -210,6 +218,8 @@ namespace Backend.Controllers
                  
                  return BadRequest(new { Errors = new[] { message } });
              }
+
+             _cacheService.RemoveByPrefix("Dashboard:");
 
              return NoContent();
         }

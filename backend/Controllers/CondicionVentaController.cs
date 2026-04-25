@@ -11,16 +11,21 @@ namespace Backend.Controllers
     public class CondicionVentaController : ControllerBase
     {
         private readonly ICondicionVentaService _service;
+        private readonly ICacheService _cacheService;
 
-        public CondicionVentaController(ICondicionVentaService service) 
+        public CondicionVentaController(ICondicionVentaService service, ICacheService cacheService) 
         { 
             _service = service; 
+            _cacheService = cacheService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var data = await _service.GetAllAsync();
+            var data = await _cacheService.GetOrCreateAsync(
+                "Catalogo:CondicionesVenta",
+                async () => await _service.GetAllAsync(),
+                TimeSpan.FromMinutes(10));
 
             var result = new
             {
@@ -52,6 +57,8 @@ namespace Backend.Controllers
                 return BadRequest(new { Errors = new[] { message } });
             }
 
+            _cacheService.Remove("Catalogo:CondicionesVenta");
+
             return CreatedAtAction(nameof(GetById), new { id = created!.Id }, created);
         }
 
@@ -69,6 +76,8 @@ namespace Backend.Controllers
                  return BadRequest(new { Errors = new[] { message } });
             }
 
+            _cacheService.Remove("Catalogo:CondicionesVenta");
+
             return Ok(updated);
         }
 
@@ -83,6 +92,8 @@ namespace Backend.Controllers
                 return NotFound(new { Errors = new[] { message } });
             }
             
+            _cacheService.Remove("Catalogo:CondicionesVenta");
+
             return Ok(new { Message = message });
         }
     }

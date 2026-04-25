@@ -12,7 +12,13 @@ namespace Backend.Controllers
     public class TipoComprobanteController : ControllerBase
     {
         private readonly AppDbContext _db;
-        public TipoComprobanteController(AppDbContext db) { _db = db; }
+        private readonly Backend.Services.Interfaces.ICacheService _cacheService;
+
+        public TipoComprobanteController(AppDbContext db, Backend.Services.Interfaces.ICacheService cacheService) 
+        { 
+            _db = db;
+            _cacheService = cacheService;
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -20,30 +26,36 @@ namespace Backend.Controllers
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
 
-            var query = _db.TiposComprobantes
-                .OrderBy(t => t.Nombre);
-
-            var totalItems = await query.CountAsync();
-            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-            var tipos = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var result = new
-            {
-                Data = tipos,
-                Pagination = new
+            var result = await _cacheService.GetOrCreateAsync(
+                $"Catalogo:TipoComprobante:Page:{page}:Size:{pageSize}",
+                async () =>
                 {
-                    CurrentPage = page,
-                    PageSize = pageSize,
-                    TotalItems = totalItems,
-                    TotalPages = totalPages,
-                    HasPrevious = page > 1,
-                    HasNext = page < totalPages
-                }
-            };
+                    var query = _db.TiposComprobantes
+                        .OrderBy(t => t.Nombre);
+
+                    var totalItems = await query.CountAsync();
+                    var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                    var tipos = await query
+                        .Skip((page - 1) * pageSize)
+                        .Take(pageSize)
+                        .ToListAsync();
+
+                    return new
+                    {
+                        Data = tipos,
+                        Pagination = new
+                        {
+                            CurrentPage = page,
+                            PageSize = pageSize,
+                            TotalItems = totalItems,
+                            TotalPages = totalPages,
+                            HasPrevious = page > 1,
+                            HasNext = page < totalPages
+                        }
+                    };
+                },
+                TimeSpan.FromMinutes(5));
 
             return Ok(result);
         }
@@ -61,12 +73,18 @@ namespace Backend.Controllers
                 return Ok(new List<TipoComprobante>());
             }
 
-            var habilitados = await _db.AfipTiposComprobantesHabilitados
-                .Include(t => t.TipoComprobante)
-                .Where(t => t.IdAfipConfiguracion == config!.Id && t.Habilitado)
-                .Select(t => t.TipoComprobante)
-                .OrderBy(t => t!.Nombre)
-                .ToListAsync();
+            var habilitados = await _cacheService.GetOrCreateAsync(
+                "Catalogo:TipoComprobante:Habilitados",
+                async () =>
+                {
+                    return await _db.AfipTiposComprobantesHabilitados
+                        .Include(t => t.TipoComprobante)
+                        .Where(t => t.IdAfipConfiguracion == config!.Id && t.Habilitado)
+                        .Select(t => t.TipoComprobante)
+                        .OrderBy(t => t!.Nombre)
+                        .ToListAsync();
+                },
+                TimeSpan.FromMinutes(10));
 
             return Ok(habilitados);
         }
@@ -90,6 +108,8 @@ namespace Backend.Controllers
         {
             _db.TiposComprobantes.Add(tipo);
             await _db.SaveChangesAsync();
+
+            _cacheService.RemoveByPrefix("Catalogo:TipoComprobante");
 
             return CreatedAtAction(nameof(GetById), new { id = tipo.Id }, tipo);
         }
@@ -121,6 +141,8 @@ namespace Backend.Controllers
                 }
             }
 
+            _cacheService.RemoveByPrefix("Catalogo:TipoComprobante");
+
             return NoContent();
         }
 
@@ -143,6 +165,9 @@ namespace Backend.Controllers
                  // Check if it's used
                  return BadRequest("No se puede eliminar el tipo de comprobante porque está siendo utilizado.");
             }
+
+            _cacheService.RemoveByPrefix("Catalogo:TipoComprobante");
+
             return NoContent();
         }
 

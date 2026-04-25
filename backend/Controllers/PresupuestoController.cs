@@ -18,21 +18,26 @@ namespace Backend.Controllers
         private readonly IPresupuestoPdfService _pdfService;
         private readonly IEmailService _emailService;
         private readonly AppDbContext _context;
+        private readonly ICacheService _cacheService;
 
-        public PresupuestoController(IPresupuestoService presupuestoService, IPresupuestoPdfService pdfService, IEmailService emailService, AppDbContext context)
+        public PresupuestoController(IPresupuestoService presupuestoService, IPresupuestoPdfService pdfService, IEmailService emailService, AppDbContext context, ICacheService cacheService)
         {
             _presupuestoService = presupuestoService;
             _pdfService = pdfService;
             _emailService = emailService;
             _context = context;
+            _cacheService = cacheService;
         }
 
         [HttpGet("estados")]
         public async Task<IActionResult> GetEstados()
         {
-            var estados = await _context.PresupuestoEstados
-                .OrderBy(e => e.Id)
-                .ToListAsync();
+            var estados = await _cacheService.GetOrCreateAsync(
+                "Catalogo:PresupuestoEstados",
+                async () => await _context.PresupuestoEstados
+                    .OrderBy(e => e.Id)
+                    .ToListAsync(),
+                TimeSpan.FromHours(1));
 
             return Ok(estados);
         }
@@ -166,6 +171,8 @@ namespace Backend.Controllers
                 return BadRequest(new { success = false, message = message });
             }
 
+            _cacheService.RemoveByPrefix("Dashboard:");
+
             return CreatedAtAction(nameof(GetById), new { id = presupuesto!.Id }, new
             {
                 success = true,
@@ -187,6 +194,8 @@ namespace Backend.Controllers
                 return BadRequest(new { Errors = new[] { message } });
             }
 
+            _cacheService.RemoveByPrefix("Dashboard:");
+
             return NoContent();
         }
 
@@ -206,6 +215,8 @@ namespace Backend.Controllers
                 return BadRequest(new { success = false, message = message, errors = errors });
             }
 
+            _cacheService.RemoveByPrefix("Dashboard:");
+
             return Ok(new { success = true, message = message });
         }
 
@@ -224,6 +235,8 @@ namespace Backend.Controllers
             {
                 return BadRequest(new { success = false, message = message, errors = errors });
             }
+
+            _cacheService.RemoveByPrefix("Dashboard:");
 
             return Ok(new { success = true, message = message });
         }
@@ -246,6 +259,8 @@ namespace Backend.Controllers
                 
                 return BadRequest(new { success = false, message = message });
             }
+
+            _cacheService.RemoveByPrefix("Dashboard:");
 
             return Ok(new
             {
@@ -274,6 +289,8 @@ namespace Backend.Controllers
                 
                 return BadRequest(new { Errors = new[] { message } });
             }
+
+            _cacheService.RemoveByPrefix("Dashboard:");
 
             return NoContent();
         }

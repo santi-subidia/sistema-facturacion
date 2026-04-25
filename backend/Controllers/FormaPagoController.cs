@@ -12,10 +12,12 @@ namespace Backend.Controllers
     public class FormaPagoController : ControllerBase
     {
         private readonly IFormaPagoService _service;
+        private readonly ICacheService _cacheService;
 
-        public FormaPagoController(IFormaPagoService service)
+        public FormaPagoController(IFormaPagoService service, ICacheService cacheService)
         {
             _service = service;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -43,7 +45,10 @@ namespace Backend.Controllers
         [HttpGet("activas")]
         public async Task<IActionResult> GetActivas()
         {
-            var data = await _service.GetActivasAsync();
+            var data = await _cacheService.GetOrCreateAsync(
+                "Catalogo:FormasPagoActivas",
+                async () => await _service.GetActivasAsync(),
+                TimeSpan.FromMinutes(10));
             return Ok(new { Data = data });
         }
 
@@ -65,6 +70,8 @@ namespace Backend.Controllers
             if (!success)
                 return BadRequest(new { Errors = new[] { message } });
 
+            _cacheService.Remove("Catalogo:FormasPagoActivas");
+
             return CreatedAtAction(nameof(GetById), new { id = data!.Id }, data);
         }
 
@@ -82,6 +89,8 @@ namespace Backend.Controllers
                 return BadRequest(new { Errors = new[] { message } });
             }
 
+            _cacheService.Remove("Catalogo:FormasPagoActivas");
+
             return Ok(data);
         }
 
@@ -93,6 +102,8 @@ namespace Backend.Controllers
 
             if (!success)
                 return NotFound(new { Errors = new[] { message } });
+
+            _cacheService.Remove("Catalogo:FormasPagoActivas");
 
             return Ok(new { Message = message });
         }

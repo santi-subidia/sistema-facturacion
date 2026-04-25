@@ -113,6 +113,7 @@ builder.Services.AddScoped<IAfipWsfeService, AfipWsfeService>();
 builder.Services.AddScoped<IAfipComprobantePdfService, AfipComprobantePdfService>();
 builder.Services.AddScoped<IComprobantesService, ComprobantesService>();
 builder.Services.AddScoped<IDetalleComprobanteService, DetalleComprobanteService>();
+builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();

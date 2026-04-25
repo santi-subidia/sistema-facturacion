@@ -11,16 +11,21 @@ namespace Backend.Controllers
     public class RolController : ControllerBase
     {
         private readonly IRolService _service;
+        private readonly ICacheService _cacheService;
 
-        public RolController(IRolService service) 
+        public RolController(IRolService service, ICacheService cacheService) 
         { 
             _service = service; 
+            _cacheService = cacheService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var roles = await _service.GetAllAsync();
+            var roles = await _cacheService.GetOrCreateAsync(
+                "Catalogo:Roles",
+                async () => await _service.GetAllAsync(),
+                TimeSpan.FromMinutes(30));
             return Ok(roles);
         }
 
@@ -43,6 +48,8 @@ namespace Backend.Controllers
                 return BadRequest(new { Errors = new[] { message } });
             }
 
+            _cacheService.Remove("Catalogo:Roles");
+
             return CreatedAtAction(nameof(GetById), new { id = created!.Id }, created);
         }
 
@@ -59,6 +66,8 @@ namespace Backend.Controllers
                  return BadRequest(new { Errors = new[] { message } });
             }
 
+            _cacheService.Remove("Catalogo:Roles");
+
             return NoContent();
         }
 
@@ -72,6 +81,8 @@ namespace Backend.Controllers
                 return NotFound(new { Errors = new[] { message } });
             }
             
+            _cacheService.Remove("Catalogo:Roles");
+
             return NoContent();
         }
     }
