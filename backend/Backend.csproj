@@ -8,14 +8,12 @@
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
-    <!-- Publish: el runtime Windows x64 es el target de Electron -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <!-- Optimizaciones de publicación -->
     <PublishTrimmed>false</PublishTrimmed>    <!-- Trimming rompe reflection de EF Core -->
     <PublishReadyToRun>true</PublishReadyToRun> <!-- Mejora tiempo de inicio -->
   </PropertyGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
