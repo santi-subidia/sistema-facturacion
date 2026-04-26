@@ -85,9 +85,9 @@ namespace Backend.Services.Business
                         try
                         {
                             // Resolver el logo relativo a AppContext.BaseDirectory para portabilidad en Electron
-                            // Logo_Url viene como "/images/Logos/Logo_1.png" — quitamos la barra inicial
-                            var logoRelative = config.Logo_Url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-                            var fullLogoPath = Path.Combine(AppContext.BaseDirectory, logoRelative);
+                            // Logo_Url viene como "/images/Logos/Logo_1.png"
+                            var pathParts = config.Logo_Url.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                            var fullLogoPath = Path.Combine(AppContext.BaseDirectory, Path.Combine(pathParts));
                             
                             if (File.Exists(fullLogoPath))
                             {

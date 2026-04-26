@@ -142,7 +142,7 @@ namespace Backend.Services.Business
                 return (false, "Formato de imagen no vÃ¡lido. Use PNG o JPG.", null);
 
             var fileName = $"Perfil_{userId}{extension}";
-            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "Profiles");
+            var folderPath = Path.Combine(AppContext.BaseDirectory, "Images", "Profiles");
 
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);

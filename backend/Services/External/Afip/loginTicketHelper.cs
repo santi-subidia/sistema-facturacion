@@ -10,7 +10,25 @@ public class LoginTicketHelper
     {
         try
         {
-            TimeZoneInfo argentinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Argentina Standard Time");
+            TimeZoneInfo argentinaTimeZone;
+            try
+            {
+                // Intentar ID de IANA (Linux/macOS)
+                argentinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
+            }
+            catch
+            {
+                try
+                {
+                    // Intentar ID de Windows
+                    argentinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Argentina Standard Time");
+                }
+                catch
+                {
+                    // Fallback a offset fijo -03:00 si nada funciona (poco probable en entornos modernos)
+                    argentinaTimeZone = TimeZoneInfo.CreateCustomTimeZone("ART", TimeSpan.FromHours(-3), "Argentina Standard Time", "Argentina Standard Time");
+                }
+            }
             DateTime ahoraUtc = DateTime.UtcNow.AddSeconds(-60);
             DateTime ahoraArgentina = TimeZoneInfo.ConvertTime(ahoraUtc, argentinaTimeZone);
             
