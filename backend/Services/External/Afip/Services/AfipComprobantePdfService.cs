@@ -244,8 +244,6 @@ namespace Backend.Services.External.Afip.Services
                         columns.RelativeColumn(1);      // Cantidad
                         columns.RelativeColumn(1.2f);   // U. Medida
                         columns.RelativeColumn(1.5f);   // Precio Unit.
-                        columns.RelativeColumn(1);      // % Bonif
-                        columns.RelativeColumn(1.5f);   // Imp. Bonif
                         columns.RelativeColumn(1.5f);   // Subtotal
                     });
 
@@ -262,10 +260,6 @@ namespace Backend.Services.External.Afip.Services
                         header.Cell().Background("#c0c0c0").BorderBottom(1).BorderColor(Colors.Black).Padding(5)
                             .AlignCenter().Text("Precio Unit.").Bold().FontSize(10);
                         header.Cell().Background("#c0c0c0").BorderBottom(1).BorderColor(Colors.Black).Padding(5)
-                            .AlignCenter().Text("% Bonif.").Bold().FontSize(10);
-                        header.Cell().Background("#c0c0c0").BorderBottom(1).BorderColor(Colors.Black).Padding(5)
-                            .AlignCenter().Text("Imp. Bonif.").Bold().FontSize(10);
-                        header.Cell().Background("#c0c0c0").BorderBottom(1).BorderColor(Colors.Black).Padding(5)
                             .AlignCenter().Text("Subtotal").Bold().FontSize(10);
                     });
 
@@ -281,10 +275,6 @@ namespace Backend.Services.External.Afip.Services
                             .Text("Unidad").FontSize(10);
                         table.Cell().BorderTop(1).BorderColor("#c0c0c0").Padding(5)
                             .Text($"{detalle.PrecioUnitario:N2}").FontSize(10);
-                        table.Cell().BorderTop(1).BorderColor("#c0c0c0").Padding(5)
-                            .Text("0,00").FontSize(10);
-                        table.Cell().BorderTop(1).BorderColor("#c0c0c0").Padding(5)
-                            .Text("0,00").FontSize(10);
                         table.Cell().BorderTop(1).BorderColor("#c0c0c0").Padding(5)
                             .Text($"{detalle.Subtotal:N2}").FontSize(10);
                     }
@@ -306,15 +296,21 @@ namespace Backend.Services.External.Afip.Services
                         r.RelativeItem(17).AlignRight().Text($"{comprobante.Subtotal:N2}").Bold().FontSize(10);
                     });
 
-                    totalesCol.Item().Row(r =>
+                    var tipoCmp = comprobante.TipoComprobante?.CodigoAfip ?? 0;
+                    bool esFacturaC = tipoCmp == 11 || tipoCmp == 12 || tipoCmp == 13 || tipoCmp == 15;
+
+                    if (!esFacturaC)
                     {
-                        r.RelativeItem(83).AlignRight().Text("Importe Otros Tributos: $").Bold().FontSize(10);
-                        r.RelativeItem(17).AlignRight().Text("0,00").Bold().FontSize(10);
-                    });
+                        totalesCol.Item().Row(r =>
+                        {
+                            r.RelativeItem(83).AlignRight().Text("Importe Otros Tributos: $").Bold().FontSize(10);
+                            r.RelativeItem(17).AlignRight().Text("0,00").Bold().FontSize(10);
+                        });
+                    }
 
                     totalesCol.Item().Row(r =>
                     {
-                        r.RelativeItem(83).AlignRight().Text("Importe total: $").Bold().FontSize(10);
+                        r.RelativeItem(83).AlignRight().Text("Importe Total: $").Bold().FontSize(10);
                         r.RelativeItem(17).AlignRight().Text($"{comprobante.Total:N2}").Bold().FontSize(10);
                     });
                 });
