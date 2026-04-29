@@ -13,7 +13,7 @@
     "build:backend": "dotnet publish ../backend/Backend.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o resources/backend"
   },
   "devDependencies": {
-    "electron": "^26.0.0",
-    "electron-builder": "^24.0.0"
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0"
   }
 }
