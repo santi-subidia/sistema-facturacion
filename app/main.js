@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const { autoUpdater } = require('electron-updater');
 
 // ─── Single Instance Lock ─────────────────────────────────────────────────────
 const gotTheLock = app.requestSingleInstanceLock();
@@ -171,6 +172,28 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+
+  // Configuración de Auto-Updater
+  if (!isDev) {
+    autoUpdater.checkForUpdatesAndNotify();
+    
+    autoUpdater.on('update-available', () => {
+      // Opcional: avisar a la UI que hay una actualización descargándose
+    });
+    
+    autoUpdater.on('update-downloaded', () => {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: 'Actualización disponible',
+        message: 'Se descargó una nueva versión. La aplicación se reiniciará para instalar la actualización.',
+        buttons: ['Reiniciar y Actualizar', 'Más tarde']
+      }).then(({ response }) => {
+        if (response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+    });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -58,11 +58,10 @@ nsis:
   # (appsettings.Production.json se crea vacío para que ASP.NET lo ignore)
 
 # ─── Publicar (auto-update) ───────────────────────────────────────────────────
-# Descomentar si se habilita electron-updater en el futuro:
-# publish:
-#   provider: github
-#   owner: tu-usuario
-#   repo: sistema-facturacion
+publish:
+  provider: github
+  owner: santi-subidia
+  repo: sistema-facturacion
 
 # ─── Metadatos ────────────────────────────────────────────────────────────────
 extends: null
