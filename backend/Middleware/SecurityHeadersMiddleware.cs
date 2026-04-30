@@ -30,7 +30,7 @@ namespace Backend.Middleware
                 "style-src 'self' 'unsafe-inline'; " +
                 "img-src 'self' data: blob:; " +
                 "font-src 'self'; " +
-                "connect-src 'self' https://wsaahomo.afip.gov.ar https://wsaa.afip.gov.ar https://wswhomo.afip.gov.ar https://servicios1.afip.gov.ar; " +
+                "connect-src 'self' blob: https://wsaahomo.afip.gov.ar https://wsaa.afip.gov.ar https://wswhomo.afip.gov.ar https://servicios1.afip.gov.ar; " +
                 "frame-ancestors 'none'";
             
             // Desactivar APIs del navegador que no se usan
