@@ -5,6 +5,7 @@ import { usePermissions } from "./hooks/usePermissions";
 import Notification from "./components/shared/Notification";
 import ClientesTable from "./components/clientes/ClientesTable";
 import ClienteModal from "./components/clientes/ClienteModal";
+import ClientesFilters from "./components/clientes/ClientesFilters";
 import DeleteConfirmModal from "./components/shared/DeleteConfirmModal";
 import Pagination from "./components/shared/Pagination";
 
@@ -15,13 +16,14 @@ function Clientes() {
     currentPage,
     loading,
     error,
+    filters,
     fetchClientes,
     createCliente,
     updateCliente,
     deleteCliente,
     handlePageChange,
-    pageSize,
-    handlePageSizeChange,
+    applyFilters,
+    clearFilters
   } = useClientes();
 
   const { condicionesIva } = useAfipConfiguracion();
@@ -97,20 +99,6 @@ function Clientes() {
             Listado de Clientes
           </h2>
           <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <label htmlFor="pageSize" className="text-sm font-medium text-gray-700">Mostrar:</label>
-              <select
-                id="pageSize"
-                value={pageSize}
-                onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-                className="block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
             <button
               onClick={() => setShowModal(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
@@ -132,6 +120,12 @@ function Clientes() {
             </button>
           </div>
         </div>
+
+        <ClientesFilters
+          filters={filters}
+          onApplyFilters={applyFilters}
+          onClearFilters={clearFilters}
+        />
 
         <ClientesTable
           clientes={clientes}

@@ -8,13 +8,26 @@ export function useClientes() {
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [pageSize, setPageSize] = useState(10)
+  const [filters, setFilters] = useState({
+    search: "",
+    pageSize: 10,
+  })
 
-  const fetchClientes = async (page = 1, currentSize = pageSize) => {
+  const fetchClientes = async (page = 1, currentFilters = filters) => {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetchWithAuth(`${API_BASE_URL}/cliente?page=${page}&pageSize=${currentSize}`)
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: (currentFilters.pageSize || 10).toString(),
+      })
+
+      if (currentFilters.search) {
+        params.append("search", currentFilters.search)
+      }
+
+      const response = await fetchWithAuth(`${API_BASE_URL}/cliente?${params}`)
 
       if (!response.ok) {
         throw new Error('Error al cargar clientes')
@@ -32,7 +45,22 @@ export function useClientes() {
     }
   }
 
+  const applyFilters = (newFilters) => {
+    setFilters(newFilters)
+    fetchClientes(1, newFilters)
+  }
+
+  const clearFilters = () => {
+    const emptyFilters = {
+      search: "",
+      pageSize: filters.pageSize,
+    }
+    setFilters(emptyFilters)
+    fetchClientes(1, emptyFilters)
+  }
+
   const createCliente = async (formData) => {
+    // ... (rest of methods unchanged)
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const dataToSend = {
       documento: formData.documento,
@@ -127,12 +155,7 @@ export function useClientes() {
   }
 
   const handlePageChange = (page) => {
-    fetchClientes(page, pageSize)
-  }
-
-  const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize)
-    fetchClientes(1, newSize)
+    fetchClientes(page, filters)
   }
 
   useEffect(() => {
@@ -145,13 +168,14 @@ export function useClientes() {
     currentPage,
     loading,
     error,
+    filters,
     fetchClientes,
     createCliente,
     updateCliente,
     deleteCliente,
     handlePageChange,
-    pageSize,
-    handlePageSizeChange
+    applyFilters,
+    clearFilters
   }
 }
 

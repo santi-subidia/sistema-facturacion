@@ -22,10 +22,11 @@ namespace Backend.Controllers
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] bool incluirEliminados = false)
+            [FromQuery] bool incluirEliminados = false,
+            [FromQuery] string? search = null)
         {
             var (clientes, totalItems, totalPages, currentPage, currentPageSize, hasPrevious, hasNext) =
-                await _clienteService.GetAllAsync(page, pageSize, incluirEliminados);
+                await _clienteService.GetAllAsync(page, pageSize, incluirEliminados, search);
 
             var result = new
             {

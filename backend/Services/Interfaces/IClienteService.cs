@@ -6,7 +6,7 @@ namespace Backend.Services.Interfaces
     public interface IClienteService
     {
         Task<(IEnumerable<Cliente> clientes, int totalItems, int totalPages, int currentPage, int pageSize, bool hasPrevious, bool hasNext)>
-            GetAllAsync(int page, int pageSize, bool incluirEliminados);
+            GetAllAsync(int page, int pageSize, bool incluirEliminados, string? search = null);
 
         Task<IEnumerable<Cliente>> BuscarAsync(string query, int limit);
 

@@ -16,7 +16,7 @@ namespace Backend.Services.Business
         }
 
         public async Task<(IEnumerable<Cliente> clientes, int totalItems, int totalPages, int currentPage, int pageSize, bool hasPrevious, bool hasNext)>
-            GetAllAsync(int page, int pageSize, bool incluirEliminados)
+            GetAllAsync(int page, int pageSize, bool incluirEliminados, string? search = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1 || pageSize > 100) pageSize = 10;
@@ -26,6 +26,17 @@ namespace Backend.Services.Business
             if (incluirEliminados)
             {
                 query = query.IgnoreQueryFilters();
+            }
+
+            // Filtro por búsqueda general
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(c =>
+                    EF.Functions.Like(c.Nombre, $"%{search}%") ||
+                    EF.Functions.Like(c.Apellido, $"%{search}%") ||
+                    EF.Functions.Like(c.Documento, $"%{search}%") ||
+                    EF.Functions.Like(c.Correo, $"%{search}%") ||
+                    EF.Functions.Like(c.Telefono, $"%{search}%"));
             }
 
             query = query.OrderBy(c => c.Apellido).ThenBy(c => c.Nombre);
