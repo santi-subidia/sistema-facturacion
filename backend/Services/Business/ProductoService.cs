@@ -280,7 +280,12 @@ public class ProductoService : IProductoService
             {
                 using var workbook = new XLWorkbook(fileStream);
                 var worksheet = workbook.Worksheet(1);
-                var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Saltar encabezados
+                var range = worksheet.RangeUsed();
+                if (range == null)
+                {
+                    return result;
+                }
+                var rows = range.RowsUsed().Skip(1); // Saltar encabezados
 
                 foreach (var row in rows)
                 {
@@ -288,12 +293,12 @@ public class ProductoService : IProductoService
                     {
                         var prod = new ProductoImportDto
                         {
-                            Nombre = row.Cell(1).Value.ToString(),
-                            Codigo = row.Cell(2).Value.ToString(),
+                            Nombre = row.Cell(1).GetValue<string>(),
+                            Codigo = row.Cell(2).GetValue<string>(),
                             Precio = row.Cell(3).TryGetValue<decimal>(out var precio) ? precio : 0,
                             Stock = row.Cell(4).TryGetValue<decimal>(out var stock) ? stock : 0,
                             StockNegro = row.Cell(5).TryGetValue<decimal>(out var stockNegro) ? stockNegro : 0,
-                            Proveedor = row.Cell(6).Value.ToString()
+                            Proveedor = row.Cell(6).GetValue<string>()
                         };
                         productosAProcesar.Add(prod);
                     }
