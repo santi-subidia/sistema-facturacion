@@ -7,15 +7,9 @@ namespace Backend.Models
         public int IdPresupuestoEstado { get; set; } = 1; // Borrador
         public PresupuestoEstado? PresupuestoEstado { get; set; }
 
-        public int IdFormaPago { get; set; }
-        public FormaPago? FormaPago { get; set; }
-        public int IdCondicionVenta { get; set; }
-        public CondicionVenta? CondicionVenta { get; set; }
-
         public int? SesionCajaId { get; set; }
         public SesionCaja? SesionCaja { get; set; }
 
-        public DateTime Fecha { get; set; }
         public DateTime? FechaVencimiento { get; set; }
         
         public int NumeroPresupuesto { get; set; }
