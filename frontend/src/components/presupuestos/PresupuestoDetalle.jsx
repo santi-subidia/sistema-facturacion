@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../../config'
 import { fetchWithAuth } from '../../utils/authHeaders'
 import { ESTADOS_PRESUPUESTO_COLORS, DEFAULT_ESTADO_COLOR } from '../../utils/constants'
 import { useConnectivity } from '../../hooks/useConnectivity'
+import { useConfirm } from '../../context/ConfirmContext'
 import ConvertirAComprobanteModal from './ConvertirAComprobanteModal'
 import PdfViewer from '../shared/PdfViewer'
 import EnviarCorreoModal from '../shared/EnviarCorreoModal'
@@ -12,6 +13,7 @@ import EnviarWhatsAppModal from '../shared/EnviarWhatsAppModal'
 const NOMBRES_ESTADOS_TERMINALES = ['Venta en Negro', 'Facturado']
 
 function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarEstado, estados = [] }) {
+  const { confirm, alert } = useConfirm()
   const [detalles, setDetalles] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadingPdf, setLoadingPdf] = useState(false)
@@ -65,14 +67,26 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
 
     const estadoObj = estados.find(e => e.id === nuevoEstado)
     const estadoLabel = estadoObj?.nombre || 'Desconocido'
-    if (!window.confirm(`¿Cambiar el estado del presupuesto a "${estadoLabel}"?`)) return
+    
+    const isConfirmed = await confirm({
+      title: 'Cambiar Estado',
+      message: `¿Cambiar el estado del presupuesto a "${estadoLabel}"?`,
+      confirmText: 'Cambiar Estado',
+      type: 'warning'
+    })
+
+    if (!isConfirmed) return
 
     setLoadingEstado(true)
     try {
       await onCambiarEstado(presupuesto.id, nuevoEstado)
       setEstadoLocal(nuevoEstado)
     } catch (err) {
-      alert(`Error al cambiar estado: ${err.message}`)
+      alert({
+        title: 'Error',
+        message: `Error al cambiar estado: ${err.message}`,
+        type: 'danger'
+      })
     } finally {
       setLoadingEstado(false)
     }
@@ -93,7 +107,11 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
       setShowPdfPreview(true)
     } catch (err) {
       console.error('Error al cargar PDF:', err)
-      alert('Error al generar el PDF. Por favor, intente nuevamente.')
+      alert({
+        title: 'Error de PDF',
+        message: 'Error al generar el PDF. Por favor, intente nuevamente.',
+        type: 'danger'
+      })
     } finally {
       setLoadingPdf(false)
     }
@@ -150,11 +168,19 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
         setSentEmailAddr(email)
         setEmailSuccess(true)
       } else {
-        alert(`Error al enviar el correo: ${data.message || 'Error desconocido'}`)
+        alert({
+          title: 'Error de envío',
+          message: `Error al enviar el correo: ${data.message || 'Error desconocido'}`,
+          type: 'danger'
+        })
       }
     } catch (err) {
       console.error('Error sending email:', err)
-      alert('Error de red al intentar enviar el correo. Por favor, revisa la consola.')
+      alert({
+        title: 'Error de red',
+        message: 'Error de red al intentar enviar el correo. Por favor, revisa la consola.',
+        type: 'danger'
+      })
     } finally {
       setLoadingEmail(false)
     }
@@ -560,4 +586,3 @@ function PresupuestoDetalle({ show, presupuesto, onClose, onFacturar, onCambiarE
 }
 
 export default PresupuestoDetalle
-

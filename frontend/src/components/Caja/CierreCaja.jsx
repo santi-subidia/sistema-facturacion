@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useCaja } from '../../hooks/useCaja';
+import { useConfirm } from '../../context/ConfirmContext';
 
 export default function CierreCaja({ sesionActiva, onCierreExitoso }) {
     const { calcularArqueo, cerrarCaja, loading, error } = useCaja();
+    const { confirm } = useConfirm();
     const [montoCierreReal, setMontoCierreReal] = useState('');
     const [montoSistema, setMontoSistema] = useState(null);
     const [localError, setLocalError] = useState('');
@@ -30,10 +32,15 @@ export default function CierreCaja({ sesionActiva, onCierreExitoso }) {
             return;
         }
 
-        // Confirmación simple
-        if (!window.confirm('¿Está seguro que desea cerrar la caja? Esta acción no se puede deshacer.')) {
-            return;
-        }
+        // Confirmación personalizada
+        const isConfirmed = await confirm({
+            title: 'Cerrar Caja',
+            message: '¿Está seguro que desea cerrar la caja? Esta acción no se puede deshacer.',
+            confirmText: 'Cerrar Caja',
+            type: 'danger'
+        });
+
+        if (!isConfirmed) return;
 
         try {
             await cerrarCaja(sesionActiva.id, Number(montoCierreReal));

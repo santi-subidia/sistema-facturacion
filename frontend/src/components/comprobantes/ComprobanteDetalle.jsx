@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config'
 import { fetchWithAuth } from '../../utils/authHeaders'
+import { useConfirm } from '../../context/ConfirmContext'
 import PdfViewer from '../shared/PdfViewer'
 import EnviarCorreoModal from '../shared/EnviarCorreoModal'
 import EnviarWhatsAppModal from '../shared/EnviarWhatsAppModal'
 
 function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClose }) {
+  const { alert } = useConfirm()
   const comprobante = comprobanteProp || factura;
   const [pdfUrl, setPdfUrl] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -113,11 +114,19 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
         setSentEmailAddr(email)
         setEmailSuccess(true)
       } else {
-        alert(`Error al enviar el correo: ${data.message || 'Error desconocido'}`)
+        alert({
+          title: 'Error al enviar correo',
+          message: data.message || 'Error desconocido',
+          type: 'danger'
+        })
       }
     } catch (err) {
       console.error('Error sending email:', err)
-      alert('Error de red al intentar enviar el correo. Por favor, revisa la consola.')
+      alert({
+        title: 'Error de red',
+        message: 'Error de red al intentar enviar el correo. Por favor, revisa la consola.',
+        type: 'danger'
+      })
     } finally {
       setLoadingEmail(false)
     }
@@ -156,7 +165,11 @@ function ComprobanteDetalle({ show, comprobante: comprobanteProp, factura, onClo
       window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Error downloading PDF:', err)
-      alert('Error al descargar el PDF')
+      alert({
+        title: 'Error de descarga',
+        message: 'Error al descargar el PDF',
+        type: 'danger'
+      })
     }
   }
 
