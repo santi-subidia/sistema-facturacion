@@ -1,9 +1,18 @@
 import { useState, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
 import { fetchWithAuth } from '../utils/authHeaders';
+import { useCajaGlobal } from '../context/CajaContext';
 
 export function useCaja() {
-  const [sesionActiva, setSesionActiva] = useState(null);
+  const { 
+    sesionActiva, 
+    fetchSesionActiva, 
+    abrirCajaGlobal, 
+    cerrarCajaGlobal,
+    loading: loadingGlobal,
+    error: errorGlobal
+  } = useCajaGlobal();
+
   const [movimientos, setMovimientos] = useState([]);
   const [cajas, setCajas] = useState([]);
   const [puntosVentaAfip, setPuntosVentaAfip] = useState([]);
@@ -38,72 +47,12 @@ export function useCaja() {
     }
   }, []);
 
-  const fetchSesionActiva = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetchWithAuth(`${API_BASE_URL}/Caja/activa`);
-      if (response.status === 404 || response.status === 204) {
-        setSesionActiva(null);
-        return null;
-      }
-
-      const text = await response.text();
-      if (!text) {
-        setSesionActiva(null);
-        return null;
-      }
-
-      const data = JSON.parse(text);
-      if (response.ok) {
-        setSesionActiva(data);
-        return data;
-      } else {
-        throw new Error(data.message || 'Error al obtener sesión activa');
-      }
-    } catch (err) {
-      setError(err.message);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const abrirCaja = async (cajaId, montoInicial) => {
-    try {
-      setLoading(true);
-      const response = await fetchWithAuth(`${API_BASE_URL}/Caja/abrir`, {
-        method: 'POST',
-        body: JSON.stringify({ cajaId, montoInicial }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Error al abrir caja');
-      setSesionActiva(data);
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    return await abrirCajaGlobal(cajaId, montoInicial);
   };
 
   const cerrarCaja = async (sesionCajaId, montoCierreReal) => {
-    try {
-      setLoading(true);
-      const response = await fetchWithAuth(`${API_BASE_URL}/Caja/cerrar`, {
-        method: 'POST',
-        body: JSON.stringify({ sesionCajaId, montoCierreReal }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Error al cerrar caja');
-      setSesionActiva(null);
-      return data;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    return await cerrarCajaGlobal(sesionCajaId, montoCierreReal);
   };
 
   const obtenerMovimientos = useCallback(async (sesionCajaId) => {
@@ -224,8 +173,8 @@ export function useCaja() {
     sesionActiva,
     movimientos,
     puntosVentaAfip,
-    loading,
-    error,
+    loading: loading || loadingGlobal,
+    error: error || errorGlobal,
     fetchCajas,
     fetchPuntosVentaAfip,
     fetchSesionActiva,
