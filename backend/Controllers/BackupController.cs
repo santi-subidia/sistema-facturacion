@@ -13,7 +13,7 @@ namespace Backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Administrador")]
     public class BackupController : ControllerBase
     {
         private readonly IConfiguration _configuration;
@@ -27,15 +27,28 @@ namespace Backend.Controllers
             _serviceProvider = serviceProvider;
         }
 
+        private string GetBackupFolder()
+        {
+            string backupFolderConfig = _configuration.GetValue<string>("BackupConfig:BackupFolder", "backups")!;
+            
+            if (Path.IsPathRooted(backupFolderConfig))
+            {
+                return backupFolderConfig;
+            }
+
+            // Para producción/Electron, preferimos AppData para evitar problemas de permisos en Program Files
+            string baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string appDataFolder = Path.Combine(baseDir, "sistema-facturacion", backupFolderConfig);
+
+            return appDataFolder;
+        }
+
         [HttpGet]
         public IActionResult GetBackups()
         {
             try
             {
-                string backupFolderConfig = _configuration.GetValue<string>("BackupConfig:BackupFolder", "backups")!;
-                string backupFolder = Path.IsPathRooted(backupFolderConfig)
-                    ? backupFolderConfig
-                    : Path.Combine(AppContext.BaseDirectory, backupFolderConfig);
+                string backupFolder = GetBackupFolder();
                 
                 if (!Directory.Exists(backupFolder))
                 {
@@ -44,12 +57,12 @@ namespace Backend.Controllers
 
                 var directory = new DirectoryInfo(backupFolder);
                 var backups = directory.GetFiles("facturacion_backup_*.db")
-                    .OrderByDescending(f => f.CreationTime)
+                    .OrderByDescending(f => f.CreationTimeUtc)
                     .Select(f => new
                     {
                         fileName = f.Name,
                         size = f.Length,
-                        createdAt = f.CreationTime
+                        createdAt = f.CreationTimeUtc
                     })
                     .ToList();
 
@@ -67,10 +80,7 @@ namespace Backend.Controllers
         {
             try
             {
-                string backupFolderConfig = _configuration.GetValue<string>("BackupConfig:BackupFolder", "backups")!;
-                string backupFolder = Path.IsPathRooted(backupFolderConfig)
-                    ? backupFolderConfig
-                    : Path.Combine(AppContext.BaseDirectory, backupFolderConfig);
+                string backupFolder = GetBackupFolder();
                 
                 // Using service provider config injection to grab the Background Worker type temporarily to run the internal manual function
                 var hostedServices = _serviceProvider.GetServices<IHostedService>();
@@ -91,7 +101,7 @@ namespace Backend.Controllers
                     {
                         fileName = fileInfo.Name,
                         size = fileInfo.Length,
-                        createdAt = fileInfo.CreationTime
+                        createdAt = fileInfo.CreationTimeUtc
                     }
                 });
             }
@@ -107,10 +117,7 @@ namespace Backend.Controllers
         {
             try
             {
-                string backupFolderConfig = _configuration.GetValue<string>("BackupConfig:BackupFolder", "backups")!;
-                string backupFolder = Path.IsPathRooted(backupFolderConfig)
-                    ? backupFolderConfig
-                    : Path.Combine(AppContext.BaseDirectory, backupFolderConfig);
+                string backupFolder = GetBackupFolder();
                 string filePath = Path.Combine(backupFolder, fileName);
 
                 if (!System.IO.File.Exists(filePath))
@@ -127,8 +134,9 @@ namespace Backend.Controllers
                     return BadRequest(new { message = "Nombre de archivo inválido." });
                 }
 
-                var bytes = System.IO.File.ReadAllBytes(filePath);
-                return File(bytes, "application/octet-stream", fileName);
+                // Usamos streaming en lugar de ReadAllBytes para no saturar la RAM con bases de datos grandes
+                var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return File(stream, "application/octet-stream", fileName);
             }
             catch (Exception ex)
             {

@@ -18,7 +18,7 @@ export function useBackupConfig() {
     const fetchBackups = useCallback(async () => {
         try {
             setLoading(true)
-            const response = await fetchWithAuth(`${API_BASE_URL}/api/backup`)
+            const response = await fetchWithAuth(`${API_BASE_URL}/backup`)
             if (!response.ok) {
                 throw new Error('Error al obtener los backups')
             }
@@ -35,7 +35,7 @@ export function useBackupConfig() {
     const triggerManualBackup = async () => {
         try {
             setLoading(true)
-            const response = await fetchWithAuth(`${API_BASE_URL}/api/backup/manual`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/backup/manual`, {
                 method: 'POST'
             })
 
@@ -59,7 +59,7 @@ export function useBackupConfig() {
 
     const downloadBackup = async (fileName) => {
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/api/backup/download/${fileName}`)
+            const response = await fetchWithAuth(`${API_BASE_URL}/backup/download/${fileName}`)
             if (!response.ok) {
                 const errorData = await response.json()
                 throw new Error(errorData.message || 'Error al descargar el backup')

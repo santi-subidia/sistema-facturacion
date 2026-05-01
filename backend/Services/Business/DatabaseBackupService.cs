@@ -57,10 +57,7 @@ namespace Backend.Services.Business
         {
             int intervalHours = _configuration.GetValue<int>("BackupConfig:IntervalHours", 24);
             int retentionDays = _configuration.GetValue<int>("BackupConfig:RetentionDays", 30);
-            string backupFolderRelative = _configuration.GetValue<string>("BackupConfig:BackupFolder", "backups")!;
-            string backupFolder = Path.IsPathRooted(backupFolderRelative) 
-                ? backupFolderRelative 
-                : Path.Combine(AppContext.BaseDirectory, backupFolderRelative);
+            string backupFolder = GetBackupFolder();
 
             if (!Directory.Exists(backupFolder))
             {
@@ -79,7 +76,7 @@ namespace Backend.Services.Business
                 var latestBackup = backupFiles.First();
                 if ((DateTime.UtcNow - latestBackup.CreationTimeUtc).TotalHours < intervalHours)
                 {
-                    shouldBackup = false; // El Ãºltimo backup es reciente
+                    shouldBackup = false; // El último backup es reciente
                 }
             }
 
@@ -90,6 +87,22 @@ namespace Backend.Services.Business
 
             // Cleanup old backups
             CleanOldBackups(backupFolder, retentionDays);
+        }
+
+        private string GetBackupFolder()
+        {
+            string backupFolderRelative = _configuration.GetValue<string>("BackupConfig:BackupFolder", "backups")!;
+            
+            if (Path.IsPathRooted(backupFolderRelative))
+            {
+                return backupFolderRelative;
+            }
+
+            // Para producción/Electron, preferimos AppData para evitar problemas de permisos en Program Files
+            string baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string appDataFolder = Path.Combine(baseDir, "sistema-facturacion", backupFolderRelative);
+
+            return appDataFolder;
         }
 
         public async Task<string> PerformBackupAsync(string backupFolder)
