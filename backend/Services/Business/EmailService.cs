@@ -34,10 +34,7 @@ namespace Backend.Services.Business
             var result = await EnviarCorreoBaseAsync(
                 destinationEmail, pdfBytes, fileName,
                 tipoDocumento,
-                "Estimado/a cliente,\n\n"
-                + $"Adjunto encontrará el {tipoDocumento.ToLower()} correspondiente.\n\n"
-                + "Ante cualquier consulta, no dude en comunicarse con nosotros.\n\n"
-                + "Saludos cordiales,"
+                $"Adjunto encontrará el {tipoDocumento.ToLower()} solicitado."
             );
 
             if (!result.success && !isRetry)
@@ -64,7 +61,7 @@ namespace Backend.Services.Business
             return result;
         }
 
-        private async Task<(bool success, string message)> EnviarCorreoBaseAsync(string destinationEmail, byte[] pdfBytes, string fileName, string baseSubject, string baseBody)
+        private async Task<(bool success, string message)> EnviarCorreoBaseAsync(string destinationEmail, byte[] pdfBytes, string fileName, string baseSubject, string mainMessage)
         {
             try
             {
@@ -95,7 +92,8 @@ namespace Backend.Services.Business
 
                 var bodyBuilder = new BodyBuilder
                 {
-                    TextBody = $"{baseBody}\n{nombreFantasia}"
+                    TextBody = $"Estimado/a cliente,\n\n{mainMessage}\n\nAnte cualquier consulta, no dude en comunicarse con nosotros.\n\nSaludos cordiales,\n{nombreFantasia}",
+                    HtmlBody = GenerarPlantillaHtml(nombreFantasia, baseSubject, mainMessage)
                 };
 
                 using (var ms = new MemoryStream(pdfBytes))
@@ -122,6 +120,49 @@ namespace Backend.Services.Business
                 _logger.LogError(ex, "Error al enviar correo a {DestinationEmail}", destinationEmail);
                 return (false, $"Error al enviar el correo: {ex.Message}");
             }
+        }
+
+        private string GenerarPlantillaHtml(string nombreEmpresa, string titulo, string mensaje)
+        {
+            return $@"
+            <html>
+            <body style=""font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;"">
+                <table width=""100%"" border=""0"" cellspacing=""0"" cellpadding=""0"" style=""background-color: #f4f4f4; padding: 20px;"">
+                    <tr>
+                        <td align=""center"">
+                            <table width=""600"" border=""0"" cellspacing=""0"" cellpadding=""0"" style=""background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"">
+                                <!-- Header -->
+                                <tr>
+                                    <td style=""background-color: #4f46e5; padding: 40px 20px; text-align: center;"">
+                                        <h1 style=""color: #ffffff; margin: 0; font-size: 24px;"">{nombreEmpresa}</h1>
+                                    </td>
+                                </tr>
+                                <!-- Body -->
+                                <tr>
+                                    <td style=""padding: 40px 30px;"">
+                                        <h2 style=""color: #1f2937; margin-top: 0;"">{titulo}</h2>
+                                        <p style=""color: #4b5563; line-height: 1.6; font-size: 16px;"">Estimado/a cliente,</p>
+                                        <p style=""color: #4b5563; line-height: 1.6; font-size: 16px;"">{mensaje}</p>
+                                        <p style=""color: #4b5563; line-height: 1.6; font-size: 16px;"">Ante cualquier consulta, no dude en comunicarse con nosotros.</p>
+                                        <div style=""margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;"">
+                                            <p style=""color: #1f2937; margin: 0; font-weight: bold;"">Saludos cordiales,</p>
+                                            <p style=""color: #4f46e5; margin: 5px 0 0 0; font-weight: bold;"">{nombreEmpresa}</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Footer -->
+                                <tr>
+                                    <td style=""background-color: #f9fafb; padding: 20px; text-align: center;"">
+                                        <p style=""color: #9ca3af; font-size: 12px; margin: 0;"">Este es un mensaje automático generado por nuestro sistema de facturación.</p>
+                                        <p style=""color: #9ca3af; font-size: 12px; margin: 5px 0 0 0;"">Por favor, no responda a este correo.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>";
         }
     }
 }
