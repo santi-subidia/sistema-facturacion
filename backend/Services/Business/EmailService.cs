@@ -1,11 +1,12 @@
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Mail;
 using System.Threading.Tasks;
 using Backend.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using Backend.Models;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace Backend.Services.Business
 {
@@ -87,28 +88,31 @@ namespace Backend.Services.Business
                 string smtpHost = string.IsNullOrWhiteSpace(configDto.SmtpHost) ? "smtp.gmail.com" : configDto.SmtpHost;
                 int smtpPort = configDto.SmtpPort ?? 587;
 
-                var mailMessage = new MailMessage
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(nombreFantasia, fromEmail));
+                message.To.Add(new MailboxAddress("", destinationEmail));
+                message.Subject = $"{baseSubject} - {nombreFantasia}";
+
+                var bodyBuilder = new BodyBuilder
                 {
-                    From = new MailAddress(fromEmail, nombreFantasia),
-                    Subject = $"{baseSubject} - {nombreFantasia}",
-                    Body = $"{baseBody}\n{nombreFantasia}",
-                    IsBodyHtml = false,
+                    TextBody = $"{baseBody}\n{nombreFantasia}"
                 };
-                
-                mailMessage.To.Add(destinationEmail);
 
                 using (var ms = new MemoryStream(pdfBytes))
                 {
-                    var attachment = new Attachment(ms, fileName, "application/pdf");
-                    mailMessage.Attachments.Add(attachment);
+                    bodyBuilder.Attachments.Add(fileName, ms.ToArray(), ContentType.Parse("application/pdf"));
+                }
 
-                    using (var smtpClient = new SmtpClient(smtpHost, smtpPort))
-                    {
-                        smtpClient.EnableSsl = true;
-                        smtpClient.Credentials = new NetworkCredential(fromEmail, emailPassword);
-                        
-                        await smtpClient.SendMailAsync(mailMessage);
-                    }
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using (var client = new SmtpClient())
+                {
+                    // SecureSocketOptions.Auto detectará STARTTLS o SSL/TLS según el puerto
+                    await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.Auto);
+                    
+                    await client.AuthenticateAsync(fromEmail, emailPassword);
+                    await client.SendAsync(message);
+                    await client.DisconnectAsync(true);
                 }
 
                 return (true, "Correo enviado exitosamente");
