@@ -111,14 +111,6 @@ npm start                    # Inicia aplicación desktop
 
 ---
 
-## 🚧 Próximos pasos e ideas (Roadmap)
-
-- ⏳ Mejoras en reportes y analíticas contables.
-- ⏳ Módulo de Compras / Proveedores.
-- ⏳ Multi-sucursal / Punto de venta múltiple.
-
----
-
 ## 👤 Autor
 
 **Subidia Hector Santiago**
