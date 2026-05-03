@@ -156,6 +156,22 @@ namespace Backend.Controllers
             }
         }
 
+        [HttpPost("~/api/afip/puntos-venta/sincronizar")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> SincronizarPuntosVenta()
+        {
+            var (success, message) = await _service.SincronizarPuntosVentaAsync();
+            
+            if (!success)
+            {
+                return BadRequest(new { success = false, message = message });
+            }
+
+            _cacheService.Remove("Afip:PuntosVenta");
+
+            return Ok(new { success = true, message = message });
+        }
+
         [HttpGet("~/api/afip/parametros/ultima-actualizacion")]
         public async Task<IActionResult> UltimaActualizacion()
         {

@@ -98,10 +98,13 @@ namespace Backend.Services.External.Afip.Services
                 var puntosVenta = await _wsfeService.FEParamGetPtosVentaAsync();
                 if (puntosVenta != null)
                 {
+                    var idsAfip = puntosVenta.Select(p => p.Nro).ToList();
+                    
+                    // 1. Actualizar o Insertar los que vienen de AFIP
                     foreach (var pv in puntosVenta)
                     {
-                        var existe = await _db.AfipPuntosVenta.FirstOrDefaultAsync(p => p.Numero == pv.Nro);
-                        if (existe == null)
+                        var existente = await _db.AfipPuntosVenta.FirstOrDefaultAsync(p => p.Numero == pv.Nro);
+                        if (existente == null)
                         {
                             _db.AfipPuntosVenta.Add(new AfipPuntoVenta
                             {
@@ -114,12 +117,35 @@ namespace Backend.Services.External.Afip.Services
                         }
                         else
                         {
-                            existe.EmisionTipo = pv.EmisionTipo;
-                            existe.Bloqueado = pv.Bloqueado;
-                            existe.FechaBaja = pv.FchBaja;
-                            existe.UltimaActualizacion = ahora;
-                            
-                            _db.AfipPuntosVenta.Update(existe);
+                            existente.EmisionTipo = pv.EmisionTipo;
+                            existente.Bloqueado = pv.Bloqueado;
+                            existente.FechaBaja = pv.FchBaja;
+                            existente.UltimaActualizacion = ahora;
+                            _db.AfipPuntosVenta.Update(existente);
+                        }
+                    }
+
+                    // 2. Manejar los que están locales pero NO en la respuesta de AFIP
+                    var noEnAfip = await _db.AfipPuntosVenta
+                        .Where(p => !idsAfip.Contains(p.Numero))
+                        .ToListAsync();
+
+                    foreach (var pOld in noEnAfip)
+                    {
+                        // Verificar si está en uso por alguna caja antes de intentar borrar
+                        bool enUso = await _db.Cajas.AnyAsync(c => c.PuntoVenta == pOld.Numero);
+                        if (!enUso)
+                        {
+                            _db.AfipPuntosVenta.Remove(pOld);
+                        }
+                        else
+                        {
+                            // Si está en uso, no lo podemos borrar (FK constraint), 
+                            // pero lo marcamos como bloqueado e inválido.
+                            pOld.Bloqueado = "S";
+                            pOld.EmisionTipo = "(No informado por AFIP)";
+                            pOld.UltimaActualizacion = ahora;
+                            _db.AfipPuntosVenta.Update(pOld);
                         }
                     }
                     result.PuntosVenta = puntosVenta.Count;

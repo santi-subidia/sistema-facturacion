@@ -5,6 +5,7 @@ using Backend.Services.External.Afip.Interfaces;
 using Backend.Data;
 using Backend.DTOs.PuntoVenta;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Backend.Services.External.Afip.Services
 {
@@ -14,19 +15,22 @@ namespace Backend.Services.External.Afip.Services
         private readonly IConfiguration _configuration;
         private readonly AfipAuthService _authService;
         private readonly AppDbContext _db;
+        private readonly ILogger<AfipWsfeService> _logger;
 
-        public AfipWsfeService(HttpClient httpClient, IConfiguration configuration, AfipAuthService authService, AppDbContext db)
+        public AfipWsfeService(HttpClient httpClient, IConfiguration configuration, AfipAuthService authService, AppDbContext db, ILogger<AfipWsfeService> logger)
         {
             _httpClient = httpClient;
             _configuration = configuration;
             _authService = authService;
             _db = db;
+            _logger = logger;
         }
 
         private async Task<(long Cuit, string Url)> ObtenerConfiguracionAsync()
         {
             var config = await _db.AfipConfiguraciones
                 .Where(c => c.Activa)
+                .OrderByDescending(c => c.UltimaActualizacion)
                 .FirstOrDefaultAsync();
 
             if (config == null)
@@ -43,6 +47,9 @@ namespace Backend.Services.External.Afip.Services
             string url = config.EsProduccion
                 ? (_configuration["Afip:WsfeUrlProd"] ?? "https://servicios1.afip.gov.ar/wsfev1/service.asmx")
                 : (_configuration["Afip:WsfeUrl"] ?? "https://wswhomo.afip.gov.ar/wsfev1/service.asmx");
+
+            _logger.LogInformation("Usando configuración de AFIP para CUIT {Cuit}. Ambiente: {Env}. URL: {Url}", 
+                config.Cuit, config.EsProduccion ? "PRODUCCIÓN" : "HOMOLOGACIÓN", url);
 
             return (cuit, url);
         }
@@ -440,8 +447,6 @@ namespace Backend.Services.External.Afip.Services
             if (parsedResponse.ResultGet != null)
             {
                 result = parsedResponse.ResultGet
-                    .Where(p => string.Equals(p.EmisionTipo, "RECE", StringComparison.OrdinalIgnoreCase) || 
-                                string.Equals(p.EmisionTipo, "Web Services", StringComparison.OrdinalIgnoreCase))
                     .Select(p => new PuntoVentaDTO
                     {
                         Nro = p.Nro,

@@ -15,5 +15,6 @@ namespace Backend.Services.Interfaces
         Task<IEnumerable<AfipTipoComprobanteHabilitado>> GetTiposComprobanteHabilitadosAsync(int idConfiguracion);
         Task<(bool success, string message)> HabilitarTipoComprobanteAsync(int idConfiguracion, TipoComprobanteHabilitadoDto dto);
         Task<(bool success, string message)> DeshabilitarTipoComprobanteAsync(int idConfiguracion, int idTipoFactura);
+        Task<(bool success, string message)> SincronizarPuntosVentaAsync();
     }
 }

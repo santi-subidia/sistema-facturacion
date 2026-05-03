@@ -39,16 +39,24 @@ namespace Backend.Services.External.Afip.Services
 
         public async Task<AfipToken> GetTokenAsync(string servicio)
         {
-            // El servicio es Scoped, por lo que no mantenemos estado en _currentToken.
-            // Confiamos siempre en el archivo de caché (que es compartido entre requests).
-            var cachedToken = await LoadTokenFromFileAsync();
-            if (cachedToken != null && cachedToken.IsValid() && cachedToken.Service == servicio)
+            var config = await _db.AfipConfiguraciones.FirstOrDefaultAsync(c => c.Activa);
+            if (config == null)
             {
-                _logger.LogDebug("Token de AFIP cargado desde archivo caché");
+                throw new InvalidOperationException("No se encontró una configuración activa de AFIP en la base de datos.");
+            }
+
+            var cachedToken = await LoadTokenFromFileAsync();
+            if (cachedToken != null && 
+                cachedToken.IsValid() && 
+                cachedToken.Service == servicio && 
+                cachedToken.Cuit == config.Cuit && 
+                cachedToken.EsProduccion == config.EsProduccion)
+            {
+                _logger.LogDebug("Token de AFIP cargado desde archivo caché para CUIT {Cuit} ({Env})", config.Cuit, config.EsProduccion ? "Prod" : "Homo");
                 return cachedToken;
             }
 
-            var newToken = await ObtenerNuevoTokenAsync(servicio);
+            var newToken = await ObtenerNuevoTokenAsync(servicio, config);
             await SaveTokenToFileAsync(newToken);
             return newToken;
         }
@@ -56,14 +64,15 @@ namespace Backend.Services.External.Afip.Services
         private async Task<AfipToken> ObtenerNuevoTokenAsync(string servicio)
         {
             var config = await _db.AfipConfiguraciones.FirstOrDefaultAsync(c => c.Activa);
-            
-            // Fallback a appsettings solo si no hay config en DB (para compatibilidad o emergencia)
-            // PERO el requerimiento es moverlo a DB. Asumimos DB es la fuente de verdad.
             if (config == null)
             {
                  throw new InvalidOperationException("No se encontró una configuración activa de AFIP en la base de datos.");
             }
+            return await ObtenerNuevoTokenAsync(servicio, config);
+        }
 
+        private async Task<AfipToken> ObtenerNuevoTokenAsync(string servicio, Backend.Models.AfipConfiguracion config)
+        {
             if (string.IsNullOrEmpty(config.CertificadoNombre))
             {
                 throw new InvalidOperationException("La configuración activa no tiene un certificado asignado.");
@@ -89,6 +98,9 @@ namespace Backend.Services.External.Afip.Services
             string wsaaUrl = config.EsProduccion 
                 ? (_configuration["Afip:WsaaUrlProd"] ?? "https://wsaa.afip.gov.ar/ws/services/LoginCms")
                 : (_configuration["Afip:WsaaUrl"] ?? "https://wsaahomo.afip.gov.ar/ws/services/LoginCms");
+
+            _logger.LogInformation("Solicitando nuevo token de AFIP para CUIT {Cuit}. Ambiente: {Env}. URL: {Url}", 
+                config.Cuit, config.EsProduccion ? "PRODUCCIÓN" : "HOMOLOGACIÓN", wsaaUrl);
 
             if (!File.Exists(certPath))
             {
@@ -120,7 +132,10 @@ namespace Backend.Services.External.Afip.Services
                 throw new Exception($"Error de AFIP ({response.StatusCode}): {responseXml}");
             }
 
-            return ParseLoginCmsResponse(responseXml, servicio);
+            var token = ParseLoginCmsResponse(responseXml, servicio);
+            token.Cuit = config.Cuit;
+            token.EsProduccion = config.EsProduccion;
+            return token;
         }
 
         private string CreateSoapRequest(string cmsFirmado)
@@ -183,14 +198,16 @@ namespace Backend.Services.External.Afip.Services
                     token.Token,
                     token.Sign,
                     token.ExpirationTime,
-                    token.Service
+                    token.Service,
+                    token.Cuit,
+                    token.EsProduccion
                 });
                 
                 // Cifrar contenido antes de guardar en disco
                 var encryptedData = _encryptionService.Encrypt(json);
                 await File.WriteAllTextAsync(_tokenCacheFile, encryptedData);
                 
-                _logger.LogDebug("Token de AFIP guardado y cifrado en {CacheFile}", _tokenCacheFile);
+                _logger.LogDebug("Token de AFIP guardado y cifrado en {CacheFile} para CUIT {Cuit} ({Env})", _tokenCacheFile, token.Cuit, token.EsProduccion ? "Prod" : "Homo");
             }
             catch (Exception ex)
             {
@@ -224,6 +241,19 @@ namespace Backend.Services.External.Afip.Services
                 var expiration = data.GetProperty("ExpirationTime").GetDateTime();
                 var service = data.GetProperty("Service").GetString();
                 
+                // Nuevas propiedades pueden no estar en archivos de caché antiguos
+                string cuit = "";
+                if (data.TryGetProperty("Cuit", out var cuitProp))
+                {
+                    cuit = cuitProp.GetString() ?? "";
+                }
+
+                bool esProduccion = false;
+                if (data.TryGetProperty("EsProduccion", out var prodProp))
+                {
+                    esProduccion = prodProp.GetBoolean();
+                }
+                
                 if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(sign))
                     return null;
                     
@@ -232,7 +262,9 @@ namespace Backend.Services.External.Afip.Services
                     Token = token,
                     Sign = sign,
                     ExpirationTime = expiration,
-                    Service = service ?? "wsfe"
+                    Service = service ?? "wsfe",
+                    Cuit = cuit,
+                    EsProduccion = esProduccion
                 };
             }
             catch (Exception ex)

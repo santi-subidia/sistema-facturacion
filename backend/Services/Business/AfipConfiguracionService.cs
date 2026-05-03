@@ -16,14 +16,22 @@ namespace Backend.Services.Business
     {
         private readonly AppDbContext _db;
         private readonly IAfipComprobantesHabilitadosService _comprobantesService;
+        private readonly IAfipWsfeService _afipWsfeService;
         private readonly IWebHostEnvironment _environment;
         private readonly IEncryptionService _encryptionService;
         private readonly ILogger<AfipConfiguracionService> _logger;
 
-        public AfipConfiguracionService(AppDbContext db, IAfipComprobantesHabilitadosService comprobantesService, IWebHostEnvironment environment, IEncryptionService encryptionService, ILogger<AfipConfiguracionService> logger)
+        public AfipConfiguracionService(
+            AppDbContext db, 
+            IAfipComprobantesHabilitadosService comprobantesService, 
+            IAfipWsfeService afipWsfeService,
+            IWebHostEnvironment environment, 
+            IEncryptionService encryptionService, 
+            ILogger<AfipConfiguracionService> logger)
         {
             _db = db;
             _comprobantesService = comprobantesService;
+            _afipWsfeService = afipWsfeService;
             _environment = environment;
             _encryptionService = encryptionService;
             _logger = logger;
@@ -43,7 +51,9 @@ namespace Backend.Services.Business
         {
             var config = await _db.AfipConfiguraciones
                 .Include(c => c.AfipCondicionIva)
-                .FirstOrDefaultAsync(c => c.Activa);
+                .Where(c => c.Activa)
+                .OrderByDescending(c => c.UltimaActualizacion)
+                .FirstOrDefaultAsync();
 
             return config != null ? MapToDto(config) : null;
         }
@@ -173,8 +183,9 @@ namespace Backend.Services.Business
                 config.CertificadoPassword = _encryptionService.Encrypt(dto.CertificadoPassword);
             }
 
-            if (dto.Activa && !config.Activa)
+            if (dto.Activa)
             {
+                _logger.LogInformation("Activando configuración de AFIP (ID: {Id}, Cuit: {Cuit}, Env: {Env}). Desactivando configuraciones previas.", id, dto.Cuit, dto.EsProduccion ? "PROD" : "HOMO");
                 await DesactivarOtrasConfiguraciones(id);
             }
             
@@ -340,6 +351,7 @@ namespace Backend.Services.Business
             
             foreach (var c in otrasActivas)
             {
+                _logger.LogInformation("Desactivando configuración redundante de AFIP (ID: {Id}, Cuit: {Cuit})", c.Id, c.Cuit);
                 c.Activa = false;
             }
         }
@@ -374,6 +386,56 @@ namespace Backend.Services.Business
                     Descripcion = config.AfipCondicionIva.Descripcion
                 } : null
             };
+        }
+
+        public async Task<(bool success, string message)> SincronizarPuntosVentaAsync()
+        {
+            try
+            {
+                var config = await _db.AfipConfiguraciones.FirstOrDefaultAsync(c => c.Activa);
+                if (config == null)
+                    return (false, "No hay una configuración activa para sincronizar.");
+
+                _logger.LogInformation("Iniciando sincronización de Puntos de Venta con AFIP ({Env})", config.EsProduccion ? "Producción" : "Homologación");
+
+                var ptosVentaAfip = await _afipWsfeService.FEParamGetPtosVentaAsync();
+                
+                if (ptosVentaAfip == null || !ptosVentaAfip.Any())
+                    return (false, "AFIP no devolvió ningún punto de venta.");
+
+                var ptosVentaDb = await _db.AfipPuntosVenta.ToListAsync();
+
+                foreach (var pAfip in ptosVentaAfip)
+                {
+                    var pDb = ptosVentaDb.FirstOrDefault(p => p.Numero == pAfip.Nro);
+                    if (pDb != null)
+                    {
+                        pDb.EmisionTipo = pAfip.EmisionTipo;
+                        pDb.Bloqueado = pAfip.Bloqueado;
+                        pDb.FechaBaja = pAfip.FchBaja;
+                        pDb.UltimaActualizacion = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        _db.AfipPuntosVenta.Add(new AfipPuntoVenta
+                        {
+                            Numero = pAfip.Nro,
+                            EmisionTipo = pAfip.EmisionTipo,
+                            Bloqueado = pAfip.Bloqueado,
+                            FechaBaja = pAfip.FchBaja,
+                            UltimaActualizacion = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                return (true, $"Sincronización exitosa. Se actualizaron {ptosVentaAfip.Count} puntos de venta.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al sincronizar puntos de venta con AFIP");
+                return (false, $"Error al sincronizar: {ex.Message}");
+            }
         }
     }
 }

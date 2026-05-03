@@ -10,8 +10,8 @@ namespace Backend.Data.Seeds
             {
                 db.AfipPuntosVenta.Add(new Models.AfipPuntoVenta
                 {
-                    Numero = 2,
-                    EmisionTipo = "Web Services",
+                    Numero = 2, // Punto de venta típico para pruebas en Homologación
+                    EmisionTipo = "Web Services (HOMO)",
                     Bloqueado = "N",
                     FechaBaja = null,
                     UltimaActualizacion = DateTime.UtcNow

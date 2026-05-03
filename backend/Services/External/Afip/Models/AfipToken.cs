@@ -8,6 +8,8 @@ namespace Backend.Services.External.Afip.Models
         public string Sign { get; set; } = string.Empty;
         public DateTime ExpirationTime { get; set; }
         public string Service { get; set; } = string.Empty;
+        public string Cuit { get; set; } = string.Empty;
+        public bool EsProduccion { get; set; }
 
         public bool IsExpired()
         {
